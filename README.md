@@ -56,6 +56,8 @@ Khách: /product → Chọn SP → Chọn SL → Chọn Bank
 
 ## ⚡ Cài đặt nhanh
 
+> 🚀 Triển khai bằng Docker, health check, sao lưu và quy trình thay token: [Hướng dẫn triển khai](DEPLOYMENT.md)
+
 ### Yêu cầu
 - [Node.js](https://nodejs.org/) v18 trở lên
 - Telegram Bot Token (từ [@BotFather](https://t.me/BotFather))
@@ -268,6 +270,12 @@ Pull requests luôn được chào đón! Với thay đổi lớn, vui lòng m�
 ## 📄 License
 
 [MIT](LICENSE) © 2026 [kentzu213](https://github.com/kentzu213)
+
+## 📚 Tài liệu dự án
+
+- [🚀 Triển khai và vận hành](DEPLOYMENT.md)
+- [🧾 Changelog](CHANGELOG.md)
+- [🗺️ Roadmap](ROADMAP.md)
 
 ---
 

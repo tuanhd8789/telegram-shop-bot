@@ -1,0 +1,15 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+node_modules
+data
+backups
+test
+*.log
+npm-debug.log*
+README*.md
+CHANGELOG.md
+ROADMAP.md
+DEPLOYMENT*.md

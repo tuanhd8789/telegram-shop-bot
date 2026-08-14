@@ -56,6 +56,8 @@ Customer: /product → Select Item → Choose Qty → Choose Bank
 
 ## ⚡ Quick Start
 
+> 🚀 For Docker deployment, health checks, backups, and token rotation, see the [deployment guide](DEPLOYMENT_EN.md).
+
 ### Requirements
 - [Node.js](https://nodejs.org/) v18 or higher
 - Telegram Bot Token (from [@BotFather](https://t.me/BotFather))
@@ -268,6 +270,12 @@ Pull requests are welcome! For major changes, please open an issue first.
 ## 📄 License
 
 [MIT](LICENSE) © 2026 [kentzu213](https://github.com/kentzu213)
+
+## 📚 Project documentation
+
+- [🚀 Deployment and operations](DEPLOYMENT_EN.md)
+- [🧾 Changelog](CHANGELOG.md)
+- [🗺️ Roadmap](ROADMAP.md)
 
 ---
 

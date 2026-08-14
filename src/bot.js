@@ -1,9 +1,11 @@
 const { Telegraf, session } = require('telegraf');
 const config = require('./config');
+const { validateConfig } = require('./configValidation');
+const { startHealthServer } = require('./healthServer');
 
-// Validate token
-if (!config.BOT_TOKEN || config.BOT_TOKEN === 'your_bot_token_here') {
-    console.error('❌ BOT_TOKEN chưa được cấu hình! Hãy cập nhật file .env');
+const configErrors = validateConfig(config);
+if (configErrors.length > 0) {
+    console.error(`❌ Cấu hình không hợp lệ:\n- ${configErrors.join('\n- ')}`);
     process.exit(1);
 }
 
@@ -37,8 +39,7 @@ require('./handlers/quantitySelect')(bot);
 require('./handlers/paymentConfirm')(bot);
 require('./handlers/adminActions')(bot);
 
-// Set bot commands for menu
-bot.telegram.setMyCommands([
+const commands = [
     { command: 'start', description: '🔄 Bắt đầu / Khởi động lại' },
     { command: 'menu', description: '👤 Thông tin tài khoản' },
     { command: 'product', description: '📦 Danh sách sản phẩm' },
@@ -46,24 +47,40 @@ bot.telegram.setMyCommands([
     { command: 'checkpay', description: '🔍 Kiểm tra thanh toán' },
     { command: 'support', description: '🆘 Hỗ trợ' },
     { command: 'myid', description: '🆔 Lấy ID của bạn' },
-]);
+];
 
-// Launch bot
-bot.launch()
-    .then(() => {
+let healthServer;
+let ready = false;
+let botLaunched = false;
+
+async function start() {
+    try {
+        await bot.telegram.setMyCommands(commands);
+        await bot.launch();
+        botLaunched = true;
+        ready = true;
+        healthServer = await startHealthServer(config.HEALTH_PORT, () => ready);
+
         console.log(`🤖 ${config.SHOP_NAME} Bot đã khởi động!`);
         console.log(`👤 Admin ID: ${config.ADMIN_ID}`);
-        console.log(`🏦 Bank: ${config.BANK.NAME} - ${config.BANK.ACCOUNT}`);
+        console.log(`🏦 Bank: ${config.BANK.NAME} (đã cấu hình)`);
+        console.log(`💚 Health check: http://0.0.0.0:${config.HEALTH_PORT}/healthz`);
 
         // Start Google Sheet auto-sync
         const { startAutoSync } = require('./services/sheetSync');
         startAutoSync();
-    })
-    .catch((err) => {
+
+        // Keep recoverable database snapshots on a separate volume.
+        const { startBackupScheduler } = require('./services/backupService');
+        const db = require('./database');
+        startBackupScheduler(db);
+    } catch (err) {
         console.error('❌ Không thể khởi động bot:', err.message);
-        console.error('💡 Kiểm tra lại BOT_TOKEN trong file .env');
         process.exit(1);
-    });
+    }
+}
+
+start();
 
 // Prevent crash on network errors
 process.on('unhandledRejection', (err) => {
@@ -79,5 +96,21 @@ process.on('uncaughtException', (err) => {
 });
 
 // Graceful shutdown
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+let stopping = false;
+async function shutdown(signal) {
+    if (stopping) return;
+    stopping = true;
+    ready = false;
+
+    if (healthServer) {
+        await new Promise((resolve) => healthServer.close(resolve));
+    }
+    if (botLaunched) {
+        bot.stop(signal);
+    } else {
+        process.exit(0);
+    }
+}
+
+process.once('SIGINT', () => shutdown('SIGINT'));
+process.once('SIGTERM', () => shutdown('SIGTERM'));
