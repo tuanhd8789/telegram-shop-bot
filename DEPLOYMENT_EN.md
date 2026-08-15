@@ -50,7 +50,7 @@ docker compose up -d
 docker compose ps
 ```
 
-The health endpoint is bound to loopback only. The container runs as UID/GID `10001`, drops Linux capabilities, uses a read-only root filesystem, and stores SQLite in the `bot-data` volume.
+By default, the health endpoint is bound to loopback (`HEALTH_BIND_ADDRESS=127.0.0.1`). When the reverse proxy runs on another host, set this variable to the bot host's private LAN address (for example, `HEALTH_BIND_ADDRESS=10.10.224.35`) and restrict the health port to the proxy host in the firewall; avoid `0.0.0.0` unless it is required. The container runs as UID/GID `10001`, drops Linux capabilities, uses a read-only root filesystem, and stores SQLite in the `bot-data` volume.
 
 The bot receives updates through long polling. Telegram makes long polling and webhooks mutually exclusive; Telegraf removes an existing webhook on startup. Run exactly **one replica** of the `bot` service and do not use `docker compose up --scale bot=...`. See [Telegram Bot API — Getting updates](https://core.telegram.org/bots/api#getting-updates).
 
