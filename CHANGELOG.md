@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.1] - 2026-08-15
+
+### Fixed
+
+- Start health checks and automatic backups after Telegram connects instead of waiting for long polling to stop.
+- Exit on fatal polling errors so Docker can restart the bot.
+
 ## [1.1.0] - 2026-08-14
 
 ### Added
