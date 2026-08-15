@@ -20,7 +20,7 @@ module.exports = {
     } : null,
 
     // Payment
-    WEBHOOK_PORT: parseInt(process.env.WEBHOOK_PORT) || 3000,
+    HEALTH_PORT: parseInt(process.env.HEALTH_PORT, 10) || 3000,
     SEPAY_API_KEY: process.env.SEPAY_API_KEY || '',
 
     // Shop

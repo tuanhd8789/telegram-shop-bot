@@ -1,0 +1,27 @@
+services:
+  bot:
+    build:
+      context: .
+    image: telegram-shop-bot:local
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:${HEALTH_PORT:-3000}:${HEALTH_PORT:-3000}"
+    volumes:
+      - bot-data:/app/data
+      - bot-backups:/app/backups
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 384m
+    cpus: 0.75
+
+volumes:
+  bot-data:
+  bot-backups:
