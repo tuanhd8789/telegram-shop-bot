@@ -13,6 +13,9 @@ function validateConfig(config) {
     if (!config.BANK.ACCOUNT_NAME || config.BANK.ACCOUNT_NAME === 'YOUR_FULL_NAME') {
         errors.push('BANK_ACCOUNT_NAME is required');
     }
+    if (config.SEPAY_WEBHOOK_SECRET && config.SEPAY_WEBHOOK_SECRET.length < 32) {
+        errors.push('SEPAY_WEBHOOK_SECRET must be at least 32 characters when enabled');
+    }
 
     return errors;
 }

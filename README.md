@@ -35,6 +35,7 @@
 |-----------|--------|
 | 🛒 **Bán hàng tự động** | Khách chọn sản phẩm → thanh toán → nhận hàng tự động |
 | 💳 **QR VietQR** | Tạo mã QR thanh toán tức thì, hỗ trợ 40+ ngân hàng VN |
+| ⚡ **SePay webhook** | Tùy chọn tự xác nhận đúng tài khoản/mã đơn/số tiền và retry giao hàng |
 | 🏦 **2 ngân hàng** | Cho phép khách chọn ngân hàng khi thanh toán |
 | 📦 **Quản lý kho** | Thêm/xem/xóa kho hàng, giao tài khoản tự động |
 | 📊 **Google Sheet Sync** | Đồng bộ sản phẩm từ Google Sheet (tự động mỗi 5 phút) |
@@ -49,10 +50,12 @@ Khách: /product → Chọn SP → Chọn SL → Chọn Bank
                         ↓
               Bot tạo QR VietQR → Khách quét mã
                         ↓
-            Admin nhấn ✅ Xác nhận (hoặc /confirm)
+       SePay xác thực HMAC và đối chiếu giao dịch
                         ↓
            Bot tự động gửi tài khoản cho khách ✅
 ```
+
+Nếu chưa cấu hình SePay hoặc đơn thiếu kho, admin vẫn có thể dùng `/confirm`. Xem cấu hình và kiểm thử an toàn trong [hướng dẫn triển khai](DEPLOYMENT.md).
 
 ## ⚡ Cài đặt nhanh
 

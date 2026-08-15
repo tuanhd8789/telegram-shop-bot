@@ -1,5 +1,6 @@
 const db = require('../database');
 const productService = require('./productService');
+const { queueManualDelivery } = require('./manualDeliveryService');
 
 const orderService = {
   /**
@@ -113,13 +114,18 @@ const orderService = {
   },
 
   /**
-   * Manual deliver: admin provides account data as text
+   * Queue admin-provided account data for the persistent Telegram worker.
    */
-  manualDeliver(orderId) {
-    db.prepare(`
-      UPDATE orders SET status = 'delivered', delivered_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(orderId);
+  queueManualDelivery(orderId, accounts) {
+    return queueManualDelivery(db, orderId, accounts);
+  },
+
+  getDeliveryJob(orderId) {
+    return db.prepare(`
+      SELECT status, attempts, last_error
+      FROM telegram_jobs
+      WHERE dedupe_key = ?
+    `).get(`order:${orderId}:delivery`);
   },
 
   /**

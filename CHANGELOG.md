@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## [1.2.0] - 2026-08-15
+
+### Added
+
+- HMAC-SHA256 SePay endpoint at `POST /webhooks/sepay`, including raw-body verification and a five-minute replay window.
+- Exact incoming account, payment-code, and amount matching with unique SePay transaction IDs.
+- Persistent SQLite Telegram jobs that retry delivery after transient failures or process restarts.
+- Test Mode and Live configuration guidance in Vietnamese and English.
+
+### Changed
+
+- Generate SePay-compatible payment codes using the `PAY` prefix and six alphanumeric characters.
+- Reserve stock, mark payment, record the transaction, and enqueue delivery in one immediate SQLite transaction.
+- Keep automatically paid orders in `paid` until Telegram delivery succeeds; alert the admin instead of under-delivering when stock is insufficient.
+
 ## [1.1.3] - 2026-08-15
 
 ### Fixed
