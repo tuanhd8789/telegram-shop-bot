@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.3] - 2026-08-15
+
+### Fixed
+
+- Register the complete admin command menu only for the configured admin chat while keeping the public menu unchanged for customers.
+
 ## [1.1.2] - 2026-08-15
 
 ### Fixed
