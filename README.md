@@ -161,6 +161,8 @@ npm start
 
 </details>
 
+Bot đăng ký menu lệnh quản trị riêng cho chat có `ADMIN_ID`; tài khoản khác chỉ thấy các lệnh khách hàng. Admin cần mở chat riêng với bot và gửi `/start` ít nhất một lần để Telegram nhận diện chat.
+
 ## 📦 Thêm hàng vào kho
 
 ```bash

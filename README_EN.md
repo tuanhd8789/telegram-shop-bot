@@ -161,6 +161,8 @@ npm start
 
 </details>
 
+The bot registers a chat-scoped admin command menu for `ADMIN_ID`; other accounts only see customer commands. The admin must open a private chat with the bot and send `/start` at least once so Telegram can resolve the chat.
+
 ## 📦 Adding Stock
 
 ```bash

@@ -3,6 +3,7 @@ const config = require('./config');
 const { validateConfig } = require('./configValidation');
 const { startHealthServer } = require('./healthServer');
 const { startPolling } = require('./botLifecycle');
+const { registerCommandMenus } = require('./commandMenu');
 
 const configErrors = validateConfig(config);
 if (configErrors.length > 0) {
@@ -40,16 +41,6 @@ require('./handlers/quantitySelect')(bot);
 require('./handlers/paymentConfirm')(bot);
 require('./handlers/adminActions')(bot);
 
-const commands = [
-    { command: 'start', description: '🔄 Bắt đầu / Khởi động lại' },
-    { command: 'menu', description: '👤 Thông tin tài khoản' },
-    { command: 'product', description: '📦 Danh sách sản phẩm' },
-    { command: 'nap', description: '💰 Nạp số dư' },
-    { command: 'checkpay', description: '🔍 Kiểm tra thanh toán' },
-    { command: 'support', description: '🆘 Hỗ trợ' },
-    { command: 'myid', description: '🆔 Lấy ID của bạn' },
-];
-
 let healthServer;
 let ready = false;
 let botLaunched = false;
@@ -57,7 +48,7 @@ let pollingPromise;
 
 async function start() {
     try {
-        await bot.telegram.setMyCommands(commands);
+        await registerCommandMenus(bot.telegram, config.ADMIN_ID);
         const polling = await startPolling(bot, (error) => {
             ready = false;
             console.error('❌ Telegram polling đã dừng:', error.message);
