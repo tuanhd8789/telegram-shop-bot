@@ -50,7 +50,7 @@ docker compose up -d
 docker compose ps
 ```
 
-Compose chỉ công bố health endpoint trên loopback, chạy tiến trình bằng UID/GID `10001`, bỏ Linux capabilities, dùng filesystem chỉ đọc và lưu SQLite trong volume `bot-data`.
+Mặc định Compose chỉ công bố health endpoint trên loopback (`HEALTH_BIND_ADDRESS=127.0.0.1`). Nếu reverse proxy chạy trên máy khác, đặt biến này thành IP LAN của máy bot (ví dụ `HEALTH_BIND_ADDRESS=10.10.224.35`) và chỉ cho phép IP máy proxy truy cập cổng health qua firewall; tránh `0.0.0.0` nếu không cần thiết. Container vẫn chạy bằng UID/GID `10001`, bỏ Linux capabilities, dùng filesystem chỉ đọc và lưu SQLite trong volume `bot-data`.
 
 Bot nhận cập nhật bằng long polling. Telegram quy định long polling và webhook loại trừ nhau; Telegraf xóa webhook khi khởi động. Chỉ chạy **một replica** của service `bot`, không dùng `docker compose up --scale bot=...`. Xem [Telegram Bot API — Getting updates](https://core.telegram.org/bots/api#getting-updates).
 

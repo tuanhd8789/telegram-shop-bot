@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.2] - 2026-08-15
+
+### Fixed
+
+- Allow the health endpoint's host bind address to be configured for a reverse proxy running on another machine while retaining loopback as the secure default.
+
 ## [1.1.1] - 2026-08-15
 
 ### Fixed
