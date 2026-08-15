@@ -2,6 +2,7 @@ const { Telegraf, session } = require('telegraf');
 const config = require('./config');
 const { validateConfig } = require('./configValidation');
 const { startHealthServer } = require('./healthServer');
+const { startPolling } = require('./botLifecycle');
 
 const configErrors = validateConfig(config);
 if (configErrors.length > 0) {
@@ -52,14 +53,20 @@ const commands = [
 let healthServer;
 let ready = false;
 let botLaunched = false;
+let pollingPromise;
 
 async function start() {
     try {
         await bot.telegram.setMyCommands(commands);
-        await bot.launch();
+        const polling = await startPolling(bot, (error) => {
+            ready = false;
+            console.error('❌ Telegram polling đã dừng:', error.message);
+            process.exit(1);
+        });
+        pollingPromise = polling.pollingPromise;
         botLaunched = true;
-        ready = true;
         healthServer = await startHealthServer(config.HEALTH_PORT, () => ready);
+        ready = true;
 
         console.log(`🤖 ${config.SHOP_NAME} Bot đã khởi động!`);
         console.log(`👤 Admin ID: ${config.ADMIN_ID}`);
@@ -107,6 +114,7 @@ async function shutdown(signal) {
     }
     if (botLaunched) {
         bot.stop(signal);
+        await pollingPromise;
     } else {
         process.exit(0);
     }

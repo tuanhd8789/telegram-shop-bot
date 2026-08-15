@@ -1,12 +1,12 @@
 {
     "name": "starizzi-shop-bot",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "Telegram Shop Bot - Starizzi Shop",
     "main": "src/bot.js",
     "scripts": {
         "start": "node src/bot.js",
         "dev": "node --watch src/bot.js",
-        "check": "node --check src/bot.js && node --check src/configValidation.js && node --check src/healthServer.js && node --check src/healthcheck.js && node --check src/services/backupService.js",
+        "check": "node --check src/bot.js && node --check src/botLifecycle.js && node --check src/configValidation.js && node --check src/healthServer.js && node --check src/healthcheck.js && node --check src/services/backupService.js",
         "test": "node --test"
     },
     "dependencies": {
