@@ -66,7 +66,7 @@ Kiểm thử trước bằng **Test Mode** của SePay:
 
 Test Mode và Live là hai cấu hình tách biệt. Sau khi test đạt, tạo secret Live mới, thay secret trong `.env`, recreate container, cấu hình lại webhook Live rồi thử một giao dịch giá trị nhỏ. Secret bị quên/lộ phải được rotate ở cả SePay và server. Xem [xác thực HMAC](https://developer.sepay.vn/vi/sepay-webhooks/xac-thuc), [payload/idempotency](https://developer.sepay.vn/vi/sepay-webhooks/tich-hop-webhook) và [cấu trúc mã thanh toán](https://developer.sepay.vn/vi/sepay-webhooks/cau-hinh-ma-thanh-toan).
 
-Bot chỉ nhận giao dịch `in`, đúng tài khoản đã cấu hình, đúng mã đơn và đúng số tiền. `transaction_id` là duy nhất trong SQLite. Đơn đủ kho được giữ hàng và đưa vào hàng đợi Telegram bền vững; gửi lỗi sẽ retry sau restart. Đơn đã trả đủ nhưng thiếu kho ở trạng thái `paid` và báo admin, không tự hoàn tiền hoặc giao thiếu.
+Bot chỉ ghi nhận giao dịch `in` gửi vào đúng tài khoản đã cấu hình. Mỗi giao dịch hợp lệ đều được lưu và báo admin trên Telegram đúng một lần, kể cả khi không có hoặc không khớp mã đơn; `transaction_id` là duy nhất trong SQLite. Chỉ giao dịch khớp chính xác mã đơn đang chờ và số tiền mới được dùng để thanh toán/giao hàng. Đơn đủ kho được giữ hàng và đưa vào hàng đợi Telegram bền vững; gửi lỗi sẽ retry sau restart. Đơn đã trả đủ nhưng thiếu kho ở trạng thái `paid` và báo admin, không tự hoàn tiền hoặc giao thiếu.
 
 ## 5. Production và cập nhật
 

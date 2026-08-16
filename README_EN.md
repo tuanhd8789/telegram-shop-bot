@@ -35,7 +35,7 @@
 |---------|-------------|
 | 🛒 **Automated selling** | Customer selects product → pays → receives account automatically |
 | 💳 **VietQR Payment** | Instant QR code generation, supports 40+ Vietnamese banks |
-| ⚡ **SePay webhook** | Optional account/code/amount matching with persistent delivery retries |
+| ⚡ **SePay webhook** | Alerts admins for every incoming transfer; fulfills only exact account/code/amount matches |
 | 🏦 **Multi-bank** | Lets customers choose between 2 payment banks |
 | 📦 **Stock management** | Add/view/clear inventory, auto-deliver accounts on confirmation |
 | 📊 **Google Sheet Sync** | Auto-sync products from Google Sheet (every 5 minutes) |

@@ -111,8 +111,38 @@ test('records payment, reserves stock, and queues delivery atomically', () => {
     assert.equal(db.prepare('SELECT COUNT(*) FROM stock WHERE sold_order_id = 1').pluck().get(), 2);
     assert.equal(db.prepare('SELECT status FROM payment_transactions').pluck().get(), 'accepted');
     assert.equal(db.prepare("SELECT COUNT(*) FROM telegram_jobs WHERE kind = 'customer_delivery'").pluck().get(), 1);
+    assert.equal(db.prepare("SELECT COUNT(*) FROM telegram_jobs WHERE kind = 'admin_alert'").pluck().get(), 1);
 
     const duplicate = service.process(validPayload(), { payloadHash: 'a'.repeat(64) });
+    assert.equal(duplicate.status, 'duplicate');
+    assert.equal(db.prepare('SELECT COUNT(*) FROM telegram_jobs').pluck().get(), 2);
+    db.close();
+});
+
+test('alerts admin once for an incoming transfer that does not match an order', () => {
+    const db = createDatabase();
+    const service = createService(db);
+    const payload = validPayload({ id: 92706, code: 'PAYZZZ999', content: 'PAYZZZ999 nap tien' });
+
+    const result = service.process(payload, { payloadHash: 'e'.repeat(64) });
+
+    assert.equal(result.status, 'unmatched');
+    assert.equal(db.prepare('SELECT COUNT(*) FROM payment_transactions').pluck().get(), 1);
+    const job = db.prepare("SELECT * FROM telegram_jobs WHERE kind = 'admin_alert'").get();
+    assert.ok(job);
+    assert.equal(job.dedupe_key, 'sepay:92706:admin-alert');
+    assert.deepEqual(JSON.parse(job.payload), {
+        transactionId: '92706',
+        orderId: null,
+        reason: 'Có tiền vào nhưng chưa khớp đơn hàng',
+        receivedAmount: 16000,
+        accountLast4: '8888',
+        gateway: 'MBBank',
+        paymentCode: 'PAYZZZ999',
+        referenceCode: 'FT-TEST',
+    });
+
+    const duplicate = service.process(payload, { payloadHash: 'e'.repeat(64) });
     assert.equal(duplicate.status, 'duplicate');
     assert.equal(db.prepare('SELECT COUNT(*) FROM telegram_jobs').pluck().get(), 1);
     db.close();
