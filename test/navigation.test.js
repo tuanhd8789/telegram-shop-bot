@@ -1,26 +1,47 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { mainMenuKeyboard, adminMenuKeyboard } = require('../src/handlers/navigation');
+const config = require('../src/config');
+const {
+    registerNavigation,
+    replyMenuKeyboard,
+    adminMenuKeyboard,
+    adminProductMenuKeyboard,
+    CUSTOMER_REPLY_LABELS,
+    ADMIN_REPLY_LABELS,
+} = require('../src/handlers/navigation');
 const { topupKeyboard } = require('../src/commands/nap');
 
 function labels(markup) {
-    return markup.reply_markup.inline_keyboard.flat().map((button) => button.text);
+    const rows = markup.reply_markup.inline_keyboard || markup.reply_markup.keyboard;
+    return rows.flat().map((button) => typeof button === 'string' ? button : button.text);
 }
 
-test('customer menu does not expose the admin entry', () => {
-    const customerLabels = labels(mainMenuKeyboard(false));
+test('customer reply keyboard is persistent and does not expose admin actions', () => {
+    const keyboard = replyMenuKeyboard(false);
+    const customerLabels = labels(keyboard);
     assert.ok(customerLabels.includes('🛍 Tất cả sản phẩm'));
     assert.ok(customerLabels.includes('💰 Nạp tiền vào ví'));
-    assert.equal(customerLabels.includes('🔧 Quản trị'), false);
+    assert.equal(customerLabels.includes('🔧 QUẢN TRỊ'), false);
+    assert.equal(keyboard.reply_markup.is_persistent, true);
+    assert.equal(keyboard.reply_markup.resize_keyboard, true);
+    assert.deepEqual(customerLabels, CUSTOMER_REPLY_LABELS);
 });
 
-test('admin menu exposes button-first management actions', () => {
-    assert.ok(labels(mainMenuKeyboard(true)).includes('🔧 Quản trị'));
-    const adminLabels = labels(adminMenuKeyboard());
-    assert.ok(adminLabels.includes('➕ Tạo danh mục'));
-    assert.ok(adminLabels.includes('➕ Tạo sản phẩm'));
-    assert.ok(adminLabels.includes('📥 Thêm kho'));
-    assert.ok(adminLabels.includes('📣 Gửi thông báo'));
+test('admin reply keyboard keeps customer actions above admin actions', () => {
+    const adminLabels = labels(replyMenuKeyboard(true));
+    assert.deepEqual(adminLabels.slice(0, CUSTOMER_REPLY_LABELS.length), CUSTOMER_REPLY_LABELS);
+    assert.deepEqual(adminLabels.slice(CUSTOMER_REPLY_LABELS.length), ADMIN_REPLY_LABELS);
+
+    const inlineAdminLabels = labels(adminMenuKeyboard());
+    assert.ok(inlineAdminLabels.includes('➕ Tạo danh mục'));
+    assert.ok(inlineAdminLabels.includes('➕ Tạo sản phẩm'));
+    assert.ok(inlineAdminLabels.includes('📥 Thêm kho'));
+    assert.ok(inlineAdminLabels.includes('📣 Gửi thông báo'));
+
+    const productLabels = labels(adminProductMenuKeyboard());
+    for (const label of ['📦 Tất cả sản phẩm', '➕ Tạo sản phẩm', '💵 Sửa giá', '✏️ Sửa tên', '🔁 Bật/tắt', '🗑 Xóa']) {
+        assert.ok(productLabels.includes(label));
+    }
 });
 
 test('top-up menu offers all requested preset amounts and custom input', () => {
@@ -29,4 +50,34 @@ test('top-up menu offers all requested preset amounts and custom input', () => {
         assert.ok(topupLabels.includes(amount));
     }
     assert.ok(topupLabels.includes('✍️ Nhập số tiền khác'));
+});
+
+test('routes the admin add-stock reply button to the product picker', async () => {
+    let textHandler;
+    const bot = {
+        action() {},
+        on(type, handler) {
+            if (type === 'text') textHandler = handler;
+        },
+    };
+    registerNavigation(bot);
+    const originalAdminId = config.ADMIN_ID;
+    config.ADMIN_ID = 5487392216;
+    const replies = [];
+    const ctx = {
+        from: { id: 5487392216 },
+        session: {},
+        message: { text: '📥 Thêm tồn kho' },
+        reply: (...args) => { replies.push(args); },
+    };
+
+    try {
+        await textHandler(ctx, () => assert.fail('reply button was not routed'));
+    } finally {
+        config.ADMIN_ID = originalAdminId;
+    }
+
+    assert.equal(replies.length, 1);
+    assert.match(replies[0][0], /Chọn sản phẩm cần thêm kho/);
+    assert.ok(replies[0][1].reply_markup.inline_keyboard.length > 1);
 });
