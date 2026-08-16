@@ -31,3 +31,5 @@ function sendProductList(ctx, edit = false) {
         ctx.reply(text, keyboard);
     }
 }
+
+module.exports.sendProductList = sendProductList;

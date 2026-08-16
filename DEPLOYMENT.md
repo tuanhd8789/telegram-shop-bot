@@ -68,6 +68,8 @@ Test Mode và Live là hai cấu hình tách biệt. Sau khi test đạt, tạo 
 
 Bot chỉ ghi nhận giao dịch `in` gửi vào đúng tài khoản đã cấu hình. Mỗi giao dịch hợp lệ đều được lưu và báo admin trên Telegram đúng một lần, kể cả khi không có hoặc không khớp mã đơn; `transaction_id` là duy nhất trong SQLite. Chỉ giao dịch khớp chính xác mã đơn đang chờ và số tiền mới được dùng để thanh toán/giao hàng. Đơn đủ kho được giữ hàng và đưa vào hàng đợi Telegram bền vững; gửi lỗi sẽ retry sau restart. Đơn đã trả đủ nhưng thiếu kho ở trạng thái `paid` và báo admin, không tự hoàn tiền hoặc giao thiếu.
 
+Phiếu nạp ví cũng dùng mã `PAY......` duy nhất. Webhook chỉ cộng số dư khi đúng mã phiếu đang chờ và đúng số tiền; transaction SQLite cập nhật phiếu, số dư và job thông báo cùng lúc nên webhook gửi lại không cộng trùng.
+
 ## 5. Production và cập nhật
 
 Đặt thư mục này trên máy chủ production riêng. Chỉ triển khai code đã merge vào `main` và đã qua CI/review:

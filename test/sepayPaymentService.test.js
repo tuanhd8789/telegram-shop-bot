@@ -10,7 +10,7 @@ function createDatabase(stockCount = 2) {
     const db = new Database(':memory:');
     db.pragma('foreign_keys = ON');
     db.exec(`
-        CREATE TABLE users (telegram_id INTEGER PRIMARY KEY, full_name TEXT);
+        CREATE TABLE users (telegram_id INTEGER PRIMARY KEY, full_name TEXT, balance INTEGER DEFAULT 0);
         CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
         CREATE TABLE stock (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,6 +36,7 @@ function createDatabase(stockCount = 2) {
         CREATE TABLE payment_transactions (
             transaction_id TEXT PRIMARY KEY,
             order_id INTEGER,
+            topup_id INTEGER,
             transfer_amount INTEGER NOT NULL,
             account_number TEXT NOT NULL,
             gateway TEXT,
@@ -45,6 +46,15 @@ function createDatabase(stockCount = 2) {
             status TEXT NOT NULL,
             reason TEXT,
             received_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE wallet_topups (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            amount INTEGER NOT NULL,
+            payment_code TEXT NOT NULL UNIQUE,
+            status TEXT NOT NULL DEFAULT 'pending',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            paid_at DATETIME
         );
         CREATE TABLE telegram_jobs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -145,6 +155,25 @@ test('alerts admin once for an incoming transfer that does not match an order', 
     const duplicate = service.process(payload, { payloadHash: 'e'.repeat(64) });
     assert.equal(duplicate.status, 'duplicate');
     assert.equal(db.prepare('SELECT COUNT(*) FROM telegram_jobs').pluck().get(), 1);
+    db.close();
+});
+
+test('credits a matching wallet top-up exactly once and queues a customer notification', () => {
+    const db = createDatabase();
+    db.prepare(`INSERT INTO wallet_topups (user_id, amount, payment_code) VALUES (12345, 50000, 'PAYWAL123')`).run();
+    const service = createService(db);
+    const payload = validPayload({ id: 92707, code: 'PAYWAL123', transferAmount: 50000 });
+
+    const result = service.process(payload, { payloadHash: 'f'.repeat(64) });
+
+    assert.deepEqual(result, { status: 'wallet_credited', topupId: 1 });
+    assert.equal(db.prepare('SELECT balance FROM users WHERE telegram_id = 12345').pluck().get(), 50000);
+    assert.equal(db.prepare('SELECT status FROM wallet_topups WHERE id = 1').pluck().get(), 'paid');
+    assert.equal(db.prepare("SELECT COUNT(*) FROM telegram_jobs WHERE kind = 'wallet_credit'").pluck().get(), 1);
+    assert.equal(db.prepare("SELECT COUNT(*) FROM telegram_jobs WHERE kind = 'admin_alert'").pluck().get(), 1);
+
+    assert.equal(service.process(payload, { payloadHash: 'f'.repeat(64) }).status, 'duplicate');
+    assert.equal(db.prepare('SELECT balance FROM users WHERE telegram_id = 12345').pluck().get(), 50000);
     db.close();
 });
 

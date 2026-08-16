@@ -93,3 +93,14 @@ test('renders an incoming transfer alert with reconciliation details', () => {
     assert.match(message, /FT&lt;&amp;TEST/);
     assert.match(message, /chưa khớp đơn hàng/);
 });
+
+test('renders a wallet credit notification', () => {
+    const message = renderJob({
+        kind: 'wallet_credit',
+        payload: JSON.stringify({ topupId: 7, amount: 50000, balance: 125000 }),
+    });
+
+    assert.match(message, /NẠP VÍ THÀNH CÔNG/);
+    assert.match(message, /50\.000đ/);
+    assert.match(message, /125\.000đ/);
+});
