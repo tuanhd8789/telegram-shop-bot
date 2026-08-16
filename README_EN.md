@@ -176,6 +176,8 @@ Category creation asks for a name, then an emoji or a public PNG/JPG URL. Telegr
 
 Categories configured with `custom_emoji_id` use the selected Telegram custom emoji on buttons and category headings. In inventory management, choose **View stock** or run `/viewstock ID`, then select an individual record to view, edit, or delete it. Sold stock is locked to preserve order history.
 
+Product buttons use **Price | Stock | App name** and read their individual icon from `products.custom_emoji_id`. See [`docs/product-custom-emojis.md`](docs/product-custom-emojis.md) for configuration and the current Autodesk mappings.
+
 ## 👛 Wallet top-ups
 
 Customers can choose 10,000đ, 50,000đ, 100,000đ, 200,000đ, 300,000đ, 500,000đ, or enter a custom amount. Each request receives a unique `PAY......` code. SePay credits the wallet only for the exact receiving account, code, and amount; webhook retries cannot credit twice. Both customer and admin receive a notification after a successful credit.

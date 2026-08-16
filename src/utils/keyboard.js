@@ -1,24 +1,20 @@
 const { Markup } = require('telegraf');
+const { callbackWithCustomEmoji } = require('./telegramMarkup');
 
 /**
  * Build product list keyboard
  */
 function productListKeyboard(products) {
     const buttons = products.map((p) => {
-        const stock = p.display_stock || p.stock_count;
-        let label = `${p.emoji} ${p.name} - ${formatPrice(p.price)}`;
-
-        if (p.contact_only && stock === 0) {
-            label += ` — 📬 Liên hệ`;
-        } else {
-            label += ` (Còn: ${stock})`;
-        }
+        const stock = p.display_stock ?? p.stock_count ?? 0;
+        const stockLabel = p.contact_only && stock === 0 ? 'Liên hệ' : stock;
+        let label = `${formatPrice(p.price)} | ${stockLabel} | ${p.name}`;
 
         if (p.promotion) {
-            label += ` ${p.promotion}`;
+            label += ` | ${p.promotion}`;
         }
 
-        return [Markup.button.callback(label, `product_${p.id}`)];
+        return [callbackWithCustomEmoji(label, `product_${p.id}`, p.custom_emoji_id)];
     });
 
     buttons.push([Markup.button.callback('🔄 Làm mới', 'refresh_products')]);

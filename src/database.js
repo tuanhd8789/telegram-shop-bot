@@ -40,6 +40,7 @@ db.exec(`
     price INTEGER NOT NULL,
     description TEXT,
     emoji TEXT DEFAULT '📦',
+    custom_emoji_id TEXT,
     promotion TEXT,
     contact_only INTEGER DEFAULT 0,
     contact_url TEXT,
@@ -123,6 +124,7 @@ db.exec(`
 // Safe migrations for existing databases
 try { db.exec('ALTER TABLE products ADD COLUMN contact_url TEXT'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE products ADD COLUMN sheet_stock INTEGER DEFAULT 0'); } catch (e) { /* already exists */ }
+try { db.exec('ALTER TABLE products ADD COLUMN custom_emoji_id TEXT'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE stock ADD COLUMN sold_order_id INTEGER'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE categories ADD COLUMN image_url TEXT'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE categories ADD COLUMN custom_emoji_id TEXT'); } catch (e) { /* already exists */ }

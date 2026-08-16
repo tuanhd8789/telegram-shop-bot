@@ -177,6 +177,7 @@ Gửi `/start` hoặc `/menu` một lần để bot cài bàn phím cố định
 - Mỗi reply-keyboard button được nối trực tiếp vào action hoặc màn hình nút ngữ cảnh tiếp theo; không yêu cầu nhập lệnh.
 - Tạo danh mục là hội thoại hai bước: nhập tên, sau đó gửi emoji hoặc URL ảnh PNG/JPG công khai. Telegram không hiển thị SVG tùy biến ngay trên inline button; ảnh URL được dùng làm ảnh đầu danh mục, còn nút dùng emoji.
 - Danh mục được cấu hình `custom_emoji_id` sẽ dùng icon custom emoji trên nút và tiêu đề. Trong **Xem tồn kho**, chọn từng stock để xem chi tiết, sửa hoặc xóa; stock đã bán được khóa để giữ nguyên lịch sử đơn hàng.
+- Nút sản phẩm hiển thị theo thứ tự **Giá | Tồn kho | Tên app** và dùng `products.custom_emoji_id` làm icon riêng. Xem cách cấu hình và ánh xạ Autodesk hiện tại tại [`docs/product-custom-emojis.md`](docs/product-custom-emojis.md).
 - Các lệnh cũ vẫn được giữ để tương thích và xử lý sự cố.
 
 ## 👛 Nạp tiền vào ví
