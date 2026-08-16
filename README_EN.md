@@ -168,9 +168,9 @@ npm start
 
 The bot registers a chat-scoped admin command menu for `ADMIN_ID`; other accounts only see customer commands. The admin must open a private chat with the bot and send `/start` at least once so Telegram can resolve the chat.
 
-## 🧭 Button-first menus
+## 🧭 Persistent reply keyboard
 
-Open `/menu` from Telegram or press **Open menu** after `/start`. Customers get product, category, wallet top-up, order, account, and support actions. Only `ADMIN_ID` sees the administration entry, which provides guided category, product, stock, order, user, broadcast, synchronization, and settings actions. Legacy commands remain available for compatibility.
+Send `/start` or `/menu` once to install the persistent keyboard, then use the **four-square keyboard icon beside the emoji control** to hide or show it. Customers only receive the top customer section. `ADMIN_ID` additionally receives the lower administration section for products, categories, stock, orders, statistics, users, broadcast, Sheet sync, and settings. Every reply-keyboard label routes directly to an action or the next contextual button screen; legacy commands remain available for compatibility.
 
 Category creation asks for a name, then an emoji or a public PNG/JPG URL. Telegram inline buttons cannot display custom SVG images, so the button uses an emoji and the URL is shown as the category card image.
 
@@ -179,6 +179,8 @@ Category creation asks for a name, then an emoji or a public PNG/JPG URL. Telegr
 Customers can choose 10,000đ, 50,000đ, 100,000đ, 200,000đ, 300,000đ, 500,000đ, or enter a custom amount. Each request receives a unique `PAY......` code. SePay credits the wallet only for the exact receiving account, code, and amount; webhook retries cannot credit twice. Both customer and admin receive a notification after a successful credit.
 
 ## 📦 Adding Stock
+
+Primary flow: **Administration → Add stock → select product → send data**, one item per line. The command below remains as a fallback:
 
 ```bash
 # Step 1: Send command with product ID

@@ -168,12 +168,13 @@ npm start
 
 Bot đăng ký menu lệnh quản trị riêng cho chat có `ADMIN_ID`; tài khoản khác chỉ thấy các lệnh khách hàng. Admin cần mở chat riêng với bot và gửi `/start` ít nhất một lần để Telegram nhận diện chat.
 
-## 🧭 Menu không cần gõ lệnh
+## 🧭 Menu bàn phím không cần gõ lệnh
 
-Bấm `/menu` trong menu Telegram hoặc nút **Mở menu** sau `/start`:
+Gửi `/start` hoặc `/menu` một lần để bot cài bàn phím cố định. Sau đó bấm biểu tượng **bàn phím bốn ô cạnh nút emoji** để ẩn/hiện menu:
 
-- Khách hàng có các nút: tất cả sản phẩm, danh mục, nạp ví, đơn hàng, tài khoản và hỗ trợ.
-- Chỉ đúng `ADMIN_ID` mới thấy nút **Quản trị**. Bảng này có nút tạo danh mục/sản phẩm, thêm/xem kho, đơn hàng, thống kê, người dùng, broadcast, đồng bộ và cài đặt.
+- Khách hàng chỉ thấy phần **KHÁCH HÀNG** ở trên: tất cả sản phẩm, danh mục, nạp ví, đơn hàng, tài khoản và hỗ trợ.
+- Chỉ đúng `ADMIN_ID` mới có thêm phần **QUẢN TRỊ** ở dưới: quản lý sản phẩm/danh mục, thêm/xem tồn kho, đơn chờ, tất cả đơn, thống kê, người dùng, broadcast, đồng bộ Sheet và cài đặt.
+- Mỗi reply-keyboard button được nối trực tiếp vào action hoặc màn hình nút ngữ cảnh tiếp theo; không yêu cầu nhập lệnh.
 - Tạo danh mục là hội thoại hai bước: nhập tên, sau đó gửi emoji hoặc URL ảnh PNG/JPG công khai. Telegram không hiển thị SVG tùy biến ngay trên inline button; ảnh URL được dùng làm ảnh đầu danh mục, còn nút dùng emoji.
 - Các lệnh cũ vẫn được giữ để tương thích và xử lý sự cố.
 
@@ -182,6 +183,8 @@ Bấm `/menu` trong menu Telegram hoặc nút **Mở menu** sau `/start`:
 Nút **Nạp tiền vào ví** cung cấp các mức 10.000đ, 50.000đ, 100.000đ, 200.000đ, 300.000đ, 500.000đ và lựa chọn nhập số khác. Mỗi yêu cầu tạo một mã `PAY......` riêng. SePay chỉ cộng ví khi đúng tài khoản nhận, đúng mã và đúng số tiền; webhook lặp không cộng hai lần. Khách và admin đều nhận thông báo sau khi cộng thành công.
 
 ## 📦 Thêm hàng vào kho
+
+Cách chính: **Quản trị → Thêm tồn kho → chọn sản phẩm → gửi dữ liệu**, mỗi mặt hàng một dòng. Lệnh dưới đây chỉ là đường dự phòng:
 
 ```bash
 # Bước 1: Gửi lệnh với product ID

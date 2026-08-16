@@ -7,7 +7,7 @@ const messages = {
     welcome: (name) =>
         `👋 Chào mừng <b>${name}</b> đến với <b>${SHOP}</b>!\n\n` +
         `🛒 Chuyên cung cấp tài khoản Premium giá rẻ\n\n` +
-        `Bấm <b>Mở menu</b> để mua hàng, nạp ví hoặc xem tài khoản mà không cần gõ lệnh.`,
+        `Bấm biểu tượng <b>bàn phím cạnh nút emoji</b> để mở menu mua hàng, nạp ví hoặc quản trị mà không cần gõ lệnh.`,
 
     accountInfo: (user) =>
         `👤 <b>Thông tin tài khoản</b>\n\n` +

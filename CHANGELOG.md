@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here.
 
+## [1.4.0] - 2026-08-16
+
+### Added
+
+- A persistent Telegram reply keyboard that users open with the keyboard icon beside the emoji button.
+- Separate keyboard sections: customer actions are always shown first; administration actions are appended only for `ADMIN_ID`.
+- Text-action routing for every reply-keyboard button, including products, categories, wallet top-ups, orders, stock, statistics, users, broadcast, Sheet sync, and settings.
+
+### Changed
+
+- `/start` and `/menu` now install the role-appropriate reply keyboard instead of requiring users to open an inline menu message.
+
 ## [1.3.1] - 2026-08-16
 
 ### Fixed
