@@ -24,6 +24,11 @@ function createSePayPaymentService({ db, bankAccounts, adminId }) {
         FROM orders o JOIN products p ON p.id = o.product_id
         WHERE o.payment_code = ?
     `);
+    const getTopup = db.prepare(`
+        SELECT t.*, u.balance
+        FROM wallet_topups t JOIN users u ON u.telegram_id = t.user_id
+        WHERE t.payment_code = ?
+    `);
     const getLegacyOrders = db.prepare(`
         SELECT o.*, p.name AS product_name
         FROM orders o JOIN products p ON p.id = o.product_id
@@ -32,9 +37,9 @@ function createSePayPaymentService({ db, bankAccounts, adminId }) {
     `);
     const insertTransaction = db.prepare(`
         INSERT INTO payment_transactions (
-            transaction_id, order_id, transfer_amount, account_number, gateway,
+            transaction_id, order_id, topup_id, transfer_amount, account_number, gateway,
             reference_code, payment_code, payload_hash, status, reason
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const enqueueJob = db.prepare(`
         INSERT INTO telegram_jobs (
@@ -50,10 +55,11 @@ function createSePayPaymentService({ db, bankAccounts, adminId }) {
         );
     }
 
-    function addTransaction(data, orderId, status, reason = null) {
+    function addTransaction(data, orderId, topupId, status, reason = null) {
         insertTransaction.run(
             data.transactionId,
             orderId,
+            topupId,
             data.amount,
             data.accountNumber,
             data.gateway,
@@ -92,32 +98,70 @@ function createSePayPaymentService({ db, bankAccounts, adminId }) {
         }
 
         if (data.transferType !== 'in') {
-            addTransaction(data, null, 'ignored_transfer_type', 'Only incoming transfers are accepted');
+            addTransaction(data, null, null, 'ignored_transfer_type', 'Only incoming transfers are accepted');
             return { status: 'ignored_transfer_type' };
         }
         if (!allowedAccounts.has(data.accountNumber)) {
-            addTransaction(data, null, 'wrong_account', 'Receiving account does not match configuration');
+            addTransaction(data, null, null, 'wrong_account', 'Receiving account does not match configuration');
             return { status: 'wrong_account' };
         }
         if (!data.paymentCode) {
-            addTransaction(data, null, 'unmatched', 'No supported payment code found');
+            addTransaction(data, null, null, 'unmatched', 'No supported payment code found');
             addAdminAlert(data, null, 'Có tiền vào nhưng không có mã thanh toán');
             return { status: 'unmatched' };
         }
 
         const order = findOrder(data.paymentCode);
         if (!order) {
-            addTransaction(data, null, 'unmatched', 'No order matches the payment code');
+            const topup = getTopup.get(data.paymentCode);
+            if (topup) {
+                if (topup.status !== 'pending') {
+                    addTransaction(data, null, topup.id, 'topup_already_processed', `Top-up status is ${topup.status}`);
+                    addAdminAlert(data, null, `Phiếu nạp ví đã ở trạng thái ${topup.status}`, { topupId: topup.id });
+                    return { status: 'topup_already_processed', topupId: topup.id };
+                }
+                if (data.amount !== topup.amount) {
+                    addTransaction(data, null, topup.id, 'topup_amount_mismatch', 'Transfer amount does not equal top-up amount');
+                    addAdminAlert(data, null, 'Sai số tiền nạp ví', {
+                        topupId: topup.id,
+                        expectedAmount: topup.amount,
+                    });
+                    return { status: 'topup_amount_mismatch', topupId: topup.id };
+                }
+
+                addTransaction(data, null, topup.id, 'wallet_credited');
+                db.prepare(`
+                    UPDATE wallet_topups SET status = 'paid', paid_at = CURRENT_TIMESTAMP
+                    WHERE id = ? AND status = 'pending'
+                `).run(topup.id);
+                db.prepare('UPDATE users SET balance = balance + ? WHERE telegram_id = ?')
+                    .run(topup.amount, topup.user_id);
+                enqueueJob.run(
+                    `sepay:${data.transactionId}:wallet-credit`,
+                    'wallet_credit',
+                    null,
+                    String(topup.user_id),
+                    JSON.stringify({
+                        topupId: topup.id,
+                        amount: topup.amount,
+                        balance: topup.balance + topup.amount,
+                    })
+                );
+                addAdminAlert(data, null, 'Đã khớp phiếu nạp và cộng ví', { topupId: topup.id });
+                return { status: 'wallet_credited', topupId: topup.id };
+            }
+
+            addTransaction(data, null, null, 'unmatched', 'No order or top-up matches the payment code');
             addAdminAlert(data, null, 'Có tiền vào nhưng chưa khớp đơn hàng');
             return { status: 'unmatched' };
         }
         if (order.status !== 'pending') {
-            addTransaction(data, order.id, 'order_already_processed', `Order status is ${order.status}`);
+            addTransaction(data, order.id, null, 'order_already_processed', `Order status is ${order.status}`);
             addAdminAlert(data, order, `Đơn đã ở trạng thái ${order.status} nhưng nhận thêm giao dịch`);
             return { status: 'order_already_processed', orderId: order.id };
         }
         if (data.amount !== order.total_price) {
-            addTransaction(data, order.id, 'amount_mismatch', 'Transfer amount does not equal order total');
+            addTransaction(data, order.id, null, 'amount_mismatch', 'Transfer amount does not equal order total');
             addAdminAlert(data, order, 'Sai số tiền thanh toán', {
                 expectedAmount: order.total_price,
                 receivedAmount: data.amount,
@@ -131,7 +175,7 @@ function createSePayPaymentService({ db, bankAccounts, adminId }) {
             ORDER BY id ASC LIMIT ?
         `).all(order.product_id, order.quantity);
 
-        addTransaction(data, order.id, 'accepted');
+        addTransaction(data, order.id, null, 'accepted');
         const paid = db.prepare(`
             UPDATE orders SET status = 'paid', paid_at = CURRENT_TIMESTAMP
             WHERE id = ? AND status = 'pending'

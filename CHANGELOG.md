@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [1.3.0] - 2026-08-16
+
+### Added
+
+- Button-first customer navigation for all products, categories, wallet top-up, orders, account information, and support.
+- A permission-scoped admin action panel with guided category, product, stock, order, user, broadcast, synchronization, and settings flows.
+- Category image URLs with emoji fallback; public PNG/JPG URLs can be shown as category cards.
+- Preset wallet top-ups of 10,000đ through 500,000đ plus custom amounts.
+- Idempotent SePay wallet reconciliation, automatic balance credit, and persistent customer/admin Telegram notifications.
+
+### Changed
+
+- `/menu` now opens the action menu; legacy commands remain available for compatibility.
+
 ## [1.2.1] - 2026-08-16
 
 ### Fixed

@@ -26,7 +26,8 @@ function renderAdminAlert(payload) {
         (payload.accountLast4 ? `💳 Tài khoản: <code>*${escapeHtml(payload.accountLast4)}</code>\n` : '') +
         (payload.paymentCode ? `🔖 Mã thanh toán: <code>${escapeHtml(payload.paymentCode)}</code>\n` : '') +
         (payload.referenceCode ? `↪️ Tham chiếu: <code>${escapeHtml(payload.referenceCode)}</code>\n` : '') +
-        `🧾 Đơn hàng: <b>${payload.orderId ? `#${payload.orderId}` : 'chưa khớp'}</b>\n` +
+        (payload.topupId ? `👛 Phiếu nạp ví: <b>#${payload.topupId}</b>\n` :
+            `🧾 Đơn hàng: <b>${payload.orderId ? `#${payload.orderId}` : 'chưa khớp'}</b>\n`) +
         `📋 Kết quả: ${escapeHtml(payload.reason)}\n` +
         (payload.expectedAmount != null ? `💵 Số tiền cần nhận: <b>${Number(payload.expectedAmount).toLocaleString('vi-VN')}đ</b>\n` : '') +
         (payload.requiredStock != null ? `📦 Kho cần/có: <b>${payload.requiredStock}/${payload.availableStock}</b>\n` : '') +
@@ -35,10 +36,20 @@ function renderAdminAlert(payload) {
     );
 }
 
+function renderWalletCredit(payload) {
+    return (
+        `✅ <b>NẠP VÍ THÀNH CÔNG</b>\n\n` +
+        `🧾 Phiếu nạp: <b>#${payload.topupId}</b>\n` +
+        `💵 Đã cộng: <b>${Number(payload.amount).toLocaleString('vi-VN')}đ</b>\n` +
+        `👛 Số dư mới: <b>${Number(payload.balance).toLocaleString('vi-VN')}đ</b>`
+    );
+}
+
 function renderJob(job) {
     const payload = JSON.parse(job.payload);
     if (job.kind === 'customer_delivery') return renderCustomerDelivery(payload);
     if (job.kind === 'admin_alert') return renderAdminAlert(payload);
+    if (job.kind === 'wallet_credit') return renderWalletCredit(payload);
     throw new Error(`Unsupported Telegram job kind: ${job.kind}`);
 }
 

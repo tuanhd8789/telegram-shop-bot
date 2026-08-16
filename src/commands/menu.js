@@ -1,9 +1,7 @@
-const userService = require('../services/userService');
-const messages = require('../utils/messages');
+const { showMainMenu } = require('../handlers/navigation');
 
 module.exports = (bot) => {
     bot.command('menu', (ctx) => {
-        const user = userService.findOrCreate(ctx.from);
-        ctx.replyWithHTML(messages.accountInfo(user));
+        showMainMenu(ctx);
     });
 };

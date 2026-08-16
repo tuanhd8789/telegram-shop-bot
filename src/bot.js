@@ -53,6 +53,7 @@ require('./commands/nap')(bot);
 require('./commands/checkpay')(bot);
 require('./commands/support')(bot);
 require('./commands/myid')(bot);
+require('./handlers/navigation').registerNavigation(bot);
 
 // Register handlers
 require('./handlers/productSelect')(bot);

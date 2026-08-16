@@ -42,11 +42,13 @@
 | 🔧 **Admin Panel** | Quản lý đơn hàng, sản phẩm, thống kê doanh thu |
 | 📢 **Broadcast** | Gửi thông báo tới tất cả khách hàng |
 | 🔄 **Giao hàng thủ công** | Admin cung cấp tài khoản trực tiếp cho sản phẩm hết kho |
+| 🧭 **Menu nút ngữ cảnh** | Khách mua hàng/nạp ví bằng nút; admin có bảng thao tác riêng theo quyền |
+| 👛 **Ví tự động** | Chọn nhanh số tiền nạp hoặc nhập tùy ý; SePay cộng ví đúng một lần |
 
 ## 🔄 Flow mua hàng
 
 ```
-Khách: /product → Chọn SP → Chọn SL → Chọn Bank
+Khách: /menu → Chọn SP → Chọn SL → Chọn Bank
                         ↓
               Bot tạo QR VietQR → Khách quét mã
                         ↓
@@ -122,7 +124,7 @@ npm start
 | Lệnh | Mô tả |
 |-------|--------|
 | `/start` | 🔄 Bắt đầu / Khởi động lại |
-| `/menu` | 👤 Thông tin tài khoản |
+| `/menu` | 🧭 Mở menu nút ngữ cảnh |
 | `/product` | 📦 Danh sách sản phẩm |
 | `/nap [số tiền]` | 💰 Nạp số dư |
 | `/checkpay` | 🔍 Kiểm tra thanh toán |
@@ -165,6 +167,19 @@ npm start
 </details>
 
 Bot đăng ký menu lệnh quản trị riêng cho chat có `ADMIN_ID`; tài khoản khác chỉ thấy các lệnh khách hàng. Admin cần mở chat riêng với bot và gửi `/start` ít nhất một lần để Telegram nhận diện chat.
+
+## 🧭 Menu không cần gõ lệnh
+
+Bấm `/menu` trong menu Telegram hoặc nút **Mở menu** sau `/start`:
+
+- Khách hàng có các nút: tất cả sản phẩm, danh mục, nạp ví, đơn hàng, tài khoản và hỗ trợ.
+- Chỉ đúng `ADMIN_ID` mới thấy nút **Quản trị**. Bảng này có nút tạo danh mục/sản phẩm, thêm/xem kho, đơn hàng, thống kê, người dùng, broadcast, đồng bộ và cài đặt.
+- Tạo danh mục là hội thoại hai bước: nhập tên, sau đó gửi emoji hoặc URL ảnh PNG/JPG công khai. Telegram không hiển thị SVG tùy biến ngay trên inline button; ảnh URL được dùng làm ảnh đầu danh mục, còn nút dùng emoji.
+- Các lệnh cũ vẫn được giữ để tương thích và xử lý sự cố.
+
+## 👛 Nạp tiền vào ví
+
+Nút **Nạp tiền vào ví** cung cấp các mức 10.000đ, 50.000đ, 100.000đ, 200.000đ, 300.000đ, 500.000đ và lựa chọn nhập số khác. Mỗi yêu cầu tạo một mã `PAY......` riêng. SePay chỉ cộng ví khi đúng tài khoản nhận, đúng mã và đúng số tiền; webhook lặp không cộng hai lần. Khách và admin đều nhận thông báo sau khi cộng thành công.
 
 ## 📦 Thêm hàng vào kho
 

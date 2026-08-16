@@ -1,6 +1,6 @@
 const userCommands = [
     { command: 'start', description: '🔄 Bắt đầu / Khởi động lại' },
-    { command: 'menu', description: '👤 Thông tin tài khoản' },
+    { command: 'menu', description: '🧭 Mở menu thao tác' },
     { command: 'product', description: '📦 Danh sách sản phẩm' },
     { command: 'nap', description: '💰 Nạp số dư' },
     { command: 'checkpay', description: '🔍 Kiểm tra thanh toán' },

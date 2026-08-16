@@ -42,6 +42,8 @@
 | 🔧 **Admin Panel** | Manage orders, products, view revenue statistics |
 | 📢 **Broadcast** | Send announcements to all customers |
 | 🔄 **Manual delivery** | Admin provides account details for out-of-stock products |
+| 🧭 **Context menus** | Customers use buttons for shopping/top-ups; admins get a permission-scoped action panel |
+| 👛 **Automatic wallet top-ups** | Preset or custom amounts are credited exactly once through SePay |
 
 ## 🔄 Purchase Flow
 
@@ -122,7 +124,7 @@ npm start
 | Command | Description |
 |---------|-------------|
 | `/start` | 🔄 Start / Restart bot |
-| `/menu` | 👤 Account info |
+| `/menu` | 🧭 Open the contextual action menu |
 | `/product` | 📦 Product listing |
 | `/nap [amount]` | 💰 Top up balance |
 | `/checkpay` | 🔍 Check payment status |
@@ -165,6 +167,16 @@ npm start
 </details>
 
 The bot registers a chat-scoped admin command menu for `ADMIN_ID`; other accounts only see customer commands. The admin must open a private chat with the bot and send `/start` at least once so Telegram can resolve the chat.
+
+## 🧭 Button-first menus
+
+Open `/menu` from Telegram or press **Open menu** after `/start`. Customers get product, category, wallet top-up, order, account, and support actions. Only `ADMIN_ID` sees the administration entry, which provides guided category, product, stock, order, user, broadcast, synchronization, and settings actions. Legacy commands remain available for compatibility.
+
+Category creation asks for a name, then an emoji or a public PNG/JPG URL. Telegram inline buttons cannot display custom SVG images, so the button uses an emoji and the URL is shown as the category card image.
+
+## 👛 Wallet top-ups
+
+Customers can choose 10,000đ, 50,000đ, 100,000đ, 200,000đ, 300,000đ, 500,000đ, or enter a custom amount. Each request receives a unique `PAY......` code. SePay credits the wallet only for the exact receiving account, code, and amount; webhook retries cannot credit twice. Both customer and admin receive a notification after a successful credit.
 
 ## 📦 Adding Stock
 

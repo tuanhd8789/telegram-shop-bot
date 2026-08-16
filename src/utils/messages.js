@@ -7,14 +7,7 @@ const messages = {
     welcome: (name) =>
         `👋 Chào mừng <b>${name}</b> đến với <b>${SHOP}</b>!\n\n` +
         `🛒 Chuyên cung cấp tài khoản Premium giá rẻ\n\n` +
-        `📋 <b>Danh sách lệnh:</b>\n` +
-        `/start — 🔄 Bắt đầu / Khởi động lại\n` +
-        `/menu — 👤 Thông tin tài khoản\n` +
-        `/product — 📦 Danh sách sản phẩm\n` +
-        `/nap — 💰 Nạp số dư\n` +
-        `/checkpay — 🔍 Kiểm tra thanh toán\n` +
-        `/support — 🆘 Hỗ trợ\n` +
-        `/myid — 🆔 Lấy ID của bạn`,
+        `Bấm <b>Mở menu</b> để mua hàng, nạp ví hoặc xem tài khoản mà không cần gõ lệnh.`,
 
     accountInfo: (user) =>
         `👤 <b>Thông tin tài khoản</b>\n\n` +

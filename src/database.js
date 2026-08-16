@@ -28,7 +28,8 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     emoji TEXT DEFAULT '📦',
-    sort_order INTEGER DEFAULT 0
+    sort_order INTEGER DEFAULT 0,
+    image_url TEXT
   );
 
   CREATE TABLE IF NOT EXISTS products (
@@ -74,6 +75,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS payment_transactions (
     transaction_id TEXT PRIMARY KEY,
     order_id INTEGER,
+    topup_id INTEGER,
     transfer_amount INTEGER NOT NULL,
     account_number TEXT NOT NULL,
     gateway TEXT,
@@ -84,6 +86,17 @@ db.exec(`
     reason TEXT,
     received_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_id) REFERENCES orders(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS wallet_topups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    amount INTEGER NOT NULL,
+    payment_code TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    paid_at DATETIME,
+    FOREIGN KEY (user_id) REFERENCES users(telegram_id)
   );
 
   CREATE TABLE IF NOT EXISTS telegram_jobs (
@@ -110,6 +123,8 @@ db.exec(`
 try { db.exec('ALTER TABLE products ADD COLUMN contact_url TEXT'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE products ADD COLUMN sheet_stock INTEGER DEFAULT 0'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE stock ADD COLUMN sold_order_id INTEGER'); } catch (e) { /* already exists */ }
+try { db.exec('ALTER TABLE categories ADD COLUMN image_url TEXT'); } catch (e) { /* already exists */ }
+try { db.exec('ALTER TABLE payment_transactions ADD COLUMN topup_id INTEGER'); } catch (e) { /* already exists */ }
 
 // Seed data - only if categories table is empty
 const catCount = db.prepare('SELECT COUNT(*) as c FROM categories').get();
