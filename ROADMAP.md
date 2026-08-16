@@ -6,6 +6,7 @@
 - 2026-08-15 — Signed SePay payment webhook, exact account/code/amount matching, idempotent transaction processing, atomic stock reservation, and persistent Telegram delivery retries. Implemented in [v1.2.0](CHANGELOG.md#120---2026-08-15).
 - 2026-08-16 — Telegram admin notifications for every authenticated incoming transfer, independent of order matching, with transaction-level deduplication. Implemented in [v1.2.1](CHANGELOG.md#121---2026-08-16).
 - 2026-08-16 — Permission-scoped customer/admin action menus, guided category/product/stock workflows, and idempotent SePay wallet top-ups. Implemented in [v1.3.0](CHANGELOG.md#130---2026-08-16).
+- 2026-08-16 — First-use session initialization for all guided menu actions. Fixed in [v1.3.1](CHANGELOG.md#131---2026-08-16).
 
 ## Next
 
