@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.3.1] - 2026-08-16
+
+### Fixed
+
+- Initialize Telegram sessions for first-time callback users so guided actions such as add stock, create category/product, broadcast, and custom wallet top-up can store their next-step state.
+
 ## [1.3.0] - 2026-08-16
 
 ### Added

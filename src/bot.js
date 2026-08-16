@@ -1,4 +1,4 @@
-const { Telegraf, session } = require('telegraf');
+const { Telegraf } = require('telegraf');
 const config = require('./config');
 const { validateConfig } = require('./configValidation');
 const { startHealthServer } = require('./healthServer');
@@ -8,6 +8,7 @@ const { createSePayWebhookHandler } = require('./sepayWebhook');
 const { createSePayPaymentService } = require('./services/sepayPaymentService');
 const { createDeliveryQueue } = require('./services/deliveryQueue');
 const db = require('./database');
+const { createSessionMiddleware } = require('./session');
 
 const configErrors = validateConfig(config);
 if (configErrors.length > 0) {
@@ -32,8 +33,8 @@ const sepayHandler = createSePayWebhookHandler({
     },
 });
 
-// Enable session for admin stock input
-bot.use(session());
+// Multi-step customer/admin actions always start with a writable session.
+bot.use(createSessionMiddleware());
 
 // Error handler
 bot.catch((err, ctx) => {
