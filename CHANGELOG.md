@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here.
 
+## [1.6.0] - 2026-08-16
+
+### Added
+
+- Per-product Telegram `custom_emoji_id` storage and button rendering.
+- Documented Autodesk production mappings using the supplied custom emoji packs.
+
+### Changed
+
+- Product buttons now put the purchasing facts first: `Price | Stock | App name`.
+- Contact-only product buttons use `Price | Contact | App name` while preserving the same column order.
+
 ## [1.5.0] - 2026-08-16
 
 ### Added
