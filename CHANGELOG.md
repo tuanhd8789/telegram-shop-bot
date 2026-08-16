@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [1.2.1] - 2026-08-16
+
+### Fixed
+
+- Notify the configured Telegram admin exactly once for every authenticated incoming transfer to a configured account, including transfers that do not match an order.
+- Include the amount, masked receiving account, gateway, payment code, reference, reconciliation result, and SePay transaction ID in the admin notification.
+- Keep order fulfillment separate: only an exact pending-order code and amount match can mark an order paid or deliver stock.
+
 ## [1.2.0] - 2026-08-15
 
 ### Added

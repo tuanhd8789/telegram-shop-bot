@@ -64,7 +64,7 @@ Use SePay **Test Mode** first:
 
 Test Mode and Live are separate. After successful testing, generate a new Live secret, update `.env`, recreate the container, configure the Live webhook, and send one low-value real transaction. Rotate the secret in both SePay and the server if it is lost or exposed. See [HMAC authentication](https://developer.sepay.vn/vi/sepay-webhooks/xac-thuc), [payload/idempotency](https://developer.sepay.vn/vi/sepay-webhooks/tich-hop-webhook), and [payment-code rules](https://developer.sepay.vn/vi/sepay-webhooks/cau-hinh-ma-thanh-toan).
 
-The bot accepts only incoming transfers to a configured account with the exact order code and amount. SQLite enforces a unique SePay transaction ID. In-stock orders reserve stock and enter a persistent Telegram delivery queue; failures retry after restart. A fully paid out-of-stock order remains `paid` and alerts the admin instead of silently under-delivering.
+The bot records only incoming transfers to a configured account. Every valid transfer is persisted and reported to the Telegram admin exactly once, even when its payment code is missing or does not match an order; SQLite enforces a unique SePay transaction ID. Only an exact pending-order code and amount match can pay an order or deliver stock. In-stock orders reserve stock and enter a persistent Telegram delivery queue; failures retry after restart. A fully paid out-of-stock order remains `paid` and alerts the admin instead of silently under-delivering.
 
 ## 5. Production updates
 

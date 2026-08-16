@@ -20,11 +20,15 @@ function renderCustomerDelivery(payload) {
 
 function renderAdminAlert(payload) {
     return (
-        `⚠️ <b>SEPAY CẦN XỬ LÝ</b>\n\n` +
-        `🧾 Đơn hàng: <b>#${payload.orderId || 'không xác định'}</b>\n` +
-        `📋 Lý do: ${escapeHtml(payload.reason)}\n` +
-        (payload.expectedAmount != null ? `💵 Cần nhận: <b>${Number(payload.expectedAmount).toLocaleString('vi-VN')}đ</b>\n` : '') +
-        (payload.receivedAmount != null ? `💰 Đã nhận: <b>${Number(payload.receivedAmount).toLocaleString('vi-VN')}đ</b>\n` : '') +
+        `💰 <b>GIAO DỊCH TIỀN VÀO</b>\n\n` +
+        (payload.receivedAmount != null ? `💵 Số tiền: <b>${Number(payload.receivedAmount).toLocaleString('vi-VN')}đ</b>\n` : '') +
+        (payload.gateway ? `🏦 Ngân hàng: <b>${escapeHtml(payload.gateway)}</b>\n` : '') +
+        (payload.accountLast4 ? `💳 Tài khoản: <code>*${escapeHtml(payload.accountLast4)}</code>\n` : '') +
+        (payload.paymentCode ? `🔖 Mã thanh toán: <code>${escapeHtml(payload.paymentCode)}</code>\n` : '') +
+        (payload.referenceCode ? `↪️ Tham chiếu: <code>${escapeHtml(payload.referenceCode)}</code>\n` : '') +
+        `🧾 Đơn hàng: <b>${payload.orderId ? `#${payload.orderId}` : 'chưa khớp'}</b>\n` +
+        `📋 Kết quả: ${escapeHtml(payload.reason)}\n` +
+        (payload.expectedAmount != null ? `💵 Số tiền cần nhận: <b>${Number(payload.expectedAmount).toLocaleString('vi-VN')}đ</b>\n` : '') +
         (payload.requiredStock != null ? `📦 Kho cần/có: <b>${payload.requiredStock}/${payload.availableStock}</b>\n` : '') +
         `🔎 SePay transaction: <code>${escapeHtml(payload.transactionId)}</code>` +
         (payload.manualDelivery ? `\n👉 Giao thủ công: <code>/confirm ${payload.orderId}</code>` : '')

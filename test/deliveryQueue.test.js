@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Database = require('better-sqlite3');
-const { createDeliveryQueue } = require('../src/services/deliveryQueue');
+const { createDeliveryQueue, renderJob } = require('../src/services/deliveryQueue');
 
 function createDatabase() {
     const db = new Database(':memory:');
@@ -69,4 +69,27 @@ test('persists a failed Telegram delivery and retries it later', async () => {
     assert.equal(sent.length, 1);
     assert.equal(db.prepare('SELECT status FROM orders WHERE id = 1').pluck().get(), 'delivered');
     db.close();
+});
+
+test('renders an incoming transfer alert with reconciliation details', () => {
+    const message = renderJob({
+        kind: 'admin_alert',
+        payload: JSON.stringify({
+            transactionId: '92706',
+            orderId: null,
+            reason: 'Có tiền vào nhưng chưa khớp đơn hàng',
+            receivedAmount: 16000,
+            accountLast4: '8888',
+            gateway: 'MBBank',
+            paymentCode: 'PAYZZZ999',
+            referenceCode: 'FT<&TEST',
+        }),
+    });
+
+    assert.match(message, /GIAO DỊCH TIỀN VÀO/);
+    assert.match(message, /16\.000đ/);
+    assert.match(message, /\*8888/);
+    assert.match(message, /PAYZZZ999/);
+    assert.match(message, /FT&lt;&amp;TEST/);
+    assert.match(message, /chưa khớp đơn hàng/);
 });

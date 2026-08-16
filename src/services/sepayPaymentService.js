@@ -76,6 +76,11 @@ function createSePayPaymentService({ db, bankAccounts, adminId }) {
                 transactionId: data.transactionId,
                 orderId: order?.id || null,
                 reason,
+                receivedAmount: data.amount,
+                accountLast4: data.accountNumber.slice(-4),
+                gateway: data.gateway,
+                paymentCode: data.paymentCode,
+                referenceCode: data.referenceCode,
                 ...details,
             })
         );
@@ -96,12 +101,14 @@ function createSePayPaymentService({ db, bankAccounts, adminId }) {
         }
         if (!data.paymentCode) {
             addTransaction(data, null, 'unmatched', 'No supported payment code found');
+            addAdminAlert(data, null, 'Có tiền vào nhưng không có mã thanh toán');
             return { status: 'unmatched' };
         }
 
         const order = findOrder(data.paymentCode);
         if (!order) {
             addTransaction(data, null, 'unmatched', 'No order matches the payment code');
+            addAdminAlert(data, null, 'Có tiền vào nhưng chưa khớp đơn hàng');
             return { status: 'unmatched' };
         }
         if (order.status !== 'pending') {
@@ -150,6 +157,7 @@ function createSePayPaymentService({ db, bankAccounts, adminId }) {
             if (reserved.changes !== 1) throw new Error('Stock item was reserved concurrently');
         }
 
+        addAdminAlert(data, order, 'Đã nhận tiền, khớp đơn và xếp hàng giao tự động');
         enqueueJob.run(
             `order:${order.id}:delivery`,
             'customer_delivery',
