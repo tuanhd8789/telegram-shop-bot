@@ -28,3 +28,11 @@ test('reports all missing required configuration', () => {
         'BANK_ACCOUNT_NAME is required',
     ]);
 });
+
+test('rejects a configured SePay secret that is too short', () => {
+    const config = validConfig();
+    config.SEPAY_WEBHOOK_SECRET = 'too-short';
+    assert.deepEqual(validateConfig(config), [
+        'SEPAY_WEBHOOK_SECRET must be at least 32 characters when enabled',
+    ]);
+});

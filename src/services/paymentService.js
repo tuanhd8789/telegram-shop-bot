@@ -25,7 +25,7 @@ const paymentService = {
      * Generate unique payment code
      */
     generatePaymentCode() {
-        return `NAP PAY-${generateId()}`;
+        return `PAY${generateId()}`;
     },
 
     /**

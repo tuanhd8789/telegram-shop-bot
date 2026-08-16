@@ -39,7 +39,34 @@ docker compose logs --tail=100 bot
 
 The health response must be `{"status":"ok"}`. In `@minhbrand_bot`, test `/start`, `/myid`, `/product`, and an admin action from the configured admin account. Verify order creation, VietQR, payment confirmation, and delivery with a low-value transaction before production promotion.
 
-## 4. Production updates
+## 4. Automatic SePay payment webhook
+
+`POST /webhooks/sepay` shares the health-check port. Until `SEPAY_WEBHOOK_SECRET` is set, it returns `503` and manual confirmation remains available.
+
+Do not use a SePay API Token for this webhook. Generate a random secret of at least 32 characters locally (or in SePay's HMAC form), then enter the **same value** directly in `.env` and SePay. Never send it through an issue or chat:
+
+```bash
+openssl rand -hex 32
+```
+
+```dotenv
+SEPAY_WEBHOOK_SECRET=uncommitted_HMAC_value
+SEPAY_SIGNATURE_TOLERANCE_SECONDS=300
+```
+
+Use SePay **Test Mode** first:
+
+1. Configure payment-code recognition with prefix `PAY`, minimum suffix `6`, maximum suffix `6`, and alphanumeric characters.
+2. Create a webhook for `https://bottele.dichvuai.top/webhooks/sepay`: incoming transfers, `application/json`, the intended receiving account, and automatic retries.
+3. Select `HMAC-SHA256`, enter the secret, skip transactions without a payment code, and filter on prefix `PAY`.
+4. Recreate the container after editing `.env`; create an order and simulate the exact `PAY......` code and amount in Test Mode.
+5. Confirm SePay receives HTTP `200` with `{"success":true}`, the order moves `pending → paid → delivered`, the customer gets the stock, and replaying the same transaction does not deliver twice.
+
+Test Mode and Live are separate. After successful testing, generate a new Live secret, update `.env`, recreate the container, configure the Live webhook, and send one low-value real transaction. Rotate the secret in both SePay and the server if it is lost or exposed. See [HMAC authentication](https://developer.sepay.vn/vi/sepay-webhooks/xac-thuc), [payload/idempotency](https://developer.sepay.vn/vi/sepay-webhooks/tich-hop-webhook), and [payment-code rules](https://developer.sepay.vn/vi/sepay-webhooks/cau-hinh-ma-thanh-toan).
+
+The bot accepts only incoming transfers to a configured account with the exact order code and amount. SQLite enforces a unique SePay transaction ID. In-stock orders reserve stock and enter a persistent Telegram delivery queue; failures retry after restart. A fully paid out-of-stock order remains `paid` and alerts the admin instead of silently under-delivering.
+
+## 5. Production updates
 
 Deploy only reviewed code merged to `main` and accepted by CI:
 
@@ -54,7 +81,7 @@ By default, the health endpoint is bound to loopback (`HEALTH_BIND_ADDRESS=127.0
 
 The bot receives updates through long polling. Telegram makes long polling and webhooks mutually exclusive; Telegraf removes an existing webhook on startup. Run exactly **one replica** of the `bot` service and do not use `docker compose up --scale bot=...`. See [Telegram Bot API — Getting updates](https://core.telegram.org/bots/api#getting-updates).
 
-## 5. Backup and recovery
+## 6. Backup and recovery
 
 The bot creates one SQLite snapshot on startup and then every `BACKUP_INTERVAL_HOURS` (24 by default), retaining snapshots for `BACKUP_RETENTION_DAYS` (14 by default). Primary data and backups use separate Docker volumes.
 
@@ -77,7 +104,7 @@ curl --fail http://127.0.0.1:3000/healthz
 
 Restoration replaces current data. Export the current volume first.
 
-## 6. Operations
+## 7. Operations
 
 ```bash
 docker compose logs --tail=200 bot
@@ -85,6 +112,6 @@ docker compose restart bot
 docker compose down
 ```
 
-`docker compose down` retains volumes. Do not run it with `--volumes` unless you intentionally want to delete all live data and backups. Never paste `.env` into a support ticket.
+`docker compose down` retains volumes. Do not run it with `--volumes` unless you intentionally want to delete all live data and backups. A webhook `401` usually means the secret, timestamp, NTP, or raw-body signature is wrong; `503` means the secret is not loaded. Never paste `.env` or a full transaction payload into a support ticket.
 
 Vietnamese instructions: [DEPLOYMENT.md](DEPLOYMENT.md).

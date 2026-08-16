@@ -21,7 +21,9 @@ module.exports = {
 
     // Payment
     HEALTH_PORT: parseInt(process.env.HEALTH_PORT, 10) || 3000,
-    SEPAY_API_KEY: process.env.SEPAY_API_KEY || '',
+    SEPAY_WEBHOOK_SECRET: process.env.SEPAY_WEBHOOK_SECRET || '',
+    SEPAY_SIGNATURE_TOLERANCE_SECONDS:
+        parseInt(process.env.SEPAY_SIGNATURE_TOLERANCE_SECONDS, 10) || 300,
 
     // Shop
     SHOP_NAME: process.env.SHOP_NAME || 'Starizzi Shop',

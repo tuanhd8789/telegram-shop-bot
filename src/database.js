@@ -70,11 +70,46 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(telegram_id),
     FOREIGN KEY (product_id) REFERENCES products(id)
   );
+
+  CREATE TABLE IF NOT EXISTS payment_transactions (
+    transaction_id TEXT PRIMARY KEY,
+    order_id INTEGER,
+    transfer_amount INTEGER NOT NULL,
+    account_number TEXT NOT NULL,
+    gateway TEXT,
+    reference_code TEXT,
+    payment_code TEXT,
+    payload_hash TEXT NOT NULL,
+    status TEXT NOT NULL,
+    reason TEXT,
+    received_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS telegram_jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    dedupe_key TEXT NOT NULL UNIQUE,
+    kind TEXT NOT NULL,
+    order_id INTEGER,
+    chat_id TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    attempts INTEGER NOT NULL DEFAULT 0,
+    next_attempt_at INTEGER NOT NULL DEFAULT 0,
+    last_error TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    sent_at DATETIME,
+    FOREIGN KEY (order_id) REFERENCES orders(id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_telegram_jobs_ready
+    ON telegram_jobs(status, next_attempt_at, id);
 `);
 
 // Safe migrations for existing databases
 try { db.exec('ALTER TABLE products ADD COLUMN contact_url TEXT'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE products ADD COLUMN sheet_stock INTEGER DEFAULT 0'); } catch (e) { /* already exists */ }
+try { db.exec('ALTER TABLE stock ADD COLUMN sold_order_id INTEGER'); } catch (e) { /* already exists */ }
 
 // Seed data - only if categories table is empty
 const catCount = db.prepare('SELECT COUNT(*) as c FROM categories').get();

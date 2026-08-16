@@ -35,6 +35,7 @@
 |---------|-------------|
 | 🛒 **Automated selling** | Customer selects product → pays → receives account automatically |
 | 💳 **VietQR Payment** | Instant QR code generation, supports 40+ Vietnamese banks |
+| ⚡ **SePay webhook** | Optional account/code/amount matching with persistent delivery retries |
 | 🏦 **Multi-bank** | Lets customers choose between 2 payment banks |
 | 📦 **Stock management** | Add/view/clear inventory, auto-deliver accounts on confirmation |
 | 📊 **Google Sheet Sync** | Auto-sync products from Google Sheet (every 5 minutes) |
@@ -49,10 +50,12 @@ Customer: /product → Select Item → Choose Qty → Choose Bank
                           ↓
                 Bot generates VietQR → Customer scans & pays
                           ↓
-              Admin clicks ✅ Confirm (or /confirm)
+           SePay verifies HMAC and matches the transfer
                           ↓
              Bot auto-delivers account to customer ✅
 ```
+
+When SePay is disabled or stock is unavailable, admins can still use `/confirm`. See the safe setup and test flow in the [deployment guide](DEPLOYMENT_EN.md).
 
 ## ⚡ Quick Start
 

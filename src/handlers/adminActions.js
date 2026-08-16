@@ -24,6 +24,24 @@ function adminOnly(ctx, next) {
 
 module.exports = (bot) => {
 
+    function beginManualDelivery(ctx, order, product) {
+        adminState[ctx.from.id] = {
+            action: 'deliver_order',
+            orderId: order.id,
+            userId: order.user_id,
+            productName: product.name,
+            quantity: order.quantity,
+        };
+        return ctx.replyWithHTML(
+            `📝 <b>GIAO HÀNG THỦ CÔNG — Đơn #${order.id}</b>\n\n` +
+            `📦 SP: <b>${product.name}</b>\n` +
+            `📊 SL: ${order.quantity}\n\n` +
+            `👇 Gửi thông tin tài khoản ngay bây giờ, mỗi tài khoản một dòng.\n` +
+            `Bot sẽ lưu job và tự retry nếu Telegram tạm lỗi.\n\n` +
+            `Gõ /cancel để hủy.`
+        );
+    }
+
     // ═══════════════════════════════════════
     // /admin - Admin Panel (Main Menu)
     // ═══════════════════════════════════════
@@ -341,6 +359,29 @@ module.exports = (bot) => {
         if (args.length < 2) return ctx.reply('Cách dùng: /confirm [orderID]');
 
         const orderId = parseInt(args[1]);
+        const order = orderService.getById(orderId);
+        if (!order) return ctx.reply('❌ Đơn hàng không tồn tại');
+
+        if (order.status === 'paid') {
+            const deliveryJob = orderService.getDeliveryJob(orderId);
+            if (deliveryJob) {
+                return ctx.replyWithHTML(
+                    `ℹ️ Đơn <b>#${orderId}</b> đã có job giao hàng trạng thái <code>${deliveryJob.status}</code>.`
+                );
+            }
+            return beginManualDelivery(ctx, order, productService.getById(order.product_id));
+        }
+        if (order.status !== 'pending') {
+            return ctx.replyWithHTML(`❌ Đơn <b>#${orderId}</b> đã ở trạng thái <code>${order.status}</code>.`);
+        }
+
+        const stock = productService.getAvailableStock(order.product_id, order.quantity);
+        if (stock.length < order.quantity) {
+            const paid = orderService.markPaid(orderId);
+            if (!paid.success) return ctx.replyWithHTML(`❌ Lỗi: ${paid.error}`);
+            return beginManualDelivery(ctx, order, productService.getById(order.product_id));
+        }
+
         const result = await deliverOrder(bot, orderId);
 
         if (result.success) {
@@ -525,38 +566,18 @@ module.exports = (bot) => {
 
             const accountData = ctx.message.text.trim();
             const accounts = accountData.split('\n').filter((l) => l.trim());
-
-            // Mark order as delivered
-            orderService.manualDeliver(state.orderId);
-
-            // Decrease sheet_stock in DB
-            const db = require('../database');
-            db.prepare('UPDATE products SET sheet_stock = MAX(sheet_stock - ?, 0) WHERE id = (SELECT product_id FROM orders WHERE id = ?)').run(state.quantity, state.orderId);
-
-            // Build success message for customer
-            let customerMsg =
-                `✅ <b>ĐƠN HÀNG THÀNH CÔNG!</b>\n\n` +
-                `📦 ${state.productName} × ${state.quantity}\n\n` +
-                `🔑 <b>Thông tin tài khoản:</b>\n`;
-
-            accounts.forEach((acc, i) => {
-                customerMsg += `${i + 1})\n<code>${acc}</code>\n`;
-            });
-
-            customerMsg += `\n📖 <b>Hướng dẫn:</b> maill | passmail | passchatgpt\n` +
-                `log vào outlook.com để lấy code nha các bạn`;
-
-            // Send to customer
-            try {
-                await bot.telegram.sendMessage(state.userId, customerMsg, { parse_mode: 'HTML' });
-                ctx.replyWithHTML(
-                    `✅ <b>Đã giao hàng đơn #${state.orderId}!</b>\n\n` +
-                    `📦 ${state.productName} × ${state.quantity}\n` +
-                    `👤 Đã gửi cho khách: <code>${state.userId}</code>`
+            const queued = orderService.queueManualDelivery(state.orderId, accounts);
+            if (!queued.success) {
+                adminState[ctx.from.id] = state;
+                return ctx.replyWithHTML(
+                    `❌ Không thể xếp job giao hàng: ${queued.error}\n` +
+                    `Hãy gửi lại đúng dữ liệu hoặc gõ /cancel.`
                 );
-            } catch (err) {
-                ctx.replyWithHTML(`❌ Không gửi được cho khách: ${err.message}`);
             }
+            ctx.replyWithHTML(
+                `✅ <b>Đã xếp hàng giao đơn #${state.orderId}</b>\n\n` +
+                `Bot sẽ gửi cho khách và tự retry nếu Telegram tạm lỗi. Trạng thái đơn chuyển sang <code>delivered</code> sau khi gửi thành công.`
+            );
             return;
         }
 

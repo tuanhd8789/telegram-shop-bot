@@ -4,6 +4,10 @@ const { validateConfig } = require('./configValidation');
 const { startHealthServer } = require('./healthServer');
 const { startPolling } = require('./botLifecycle');
 const { registerCommandMenus } = require('./commandMenu');
+const { createSePayWebhookHandler } = require('./sepayWebhook');
+const { createSePayPaymentService } = require('./services/sepayPaymentService');
+const { createDeliveryQueue } = require('./services/deliveryQueue');
+const db = require('./database');
 
 const configErrors = validateConfig(config);
 if (configErrors.length > 0) {
@@ -12,6 +16,21 @@ if (configErrors.length > 0) {
 }
 
 const bot = new Telegraf(config.BOT_TOKEN);
+const bankAccounts = [config.BANK.ACCOUNT, config.BANK2?.ACCOUNT].filter(Boolean);
+const sepayPaymentService = createSePayPaymentService({
+    db,
+    bankAccounts,
+    adminId: config.ADMIN_ID,
+});
+const deliveryQueue = createDeliveryQueue({ db, telegram: bot.telegram });
+const sepayHandler = createSePayWebhookHandler({
+    secret: config.SEPAY_WEBHOOK_SECRET,
+    toleranceSeconds: config.SEPAY_SIGNATURE_TOLERANCE_SECONDS,
+    processPayment: sepayPaymentService.process,
+    onResult: (result) => {
+        console.log(`💳 SePay: ${result.status}${result.orderId ? ` (order #${result.orderId})` : ''}`);
+    },
+});
 
 // Enable session for admin stock input
 bot.use(session());
@@ -45,6 +64,7 @@ let healthServer;
 let ready = false;
 let botLaunched = false;
 let pollingPromise;
+let stopDeliveryWorker;
 
 async function start() {
     try {
@@ -56,13 +76,15 @@ async function start() {
         });
         pollingPromise = polling.pollingPromise;
         botLaunched = true;
-        healthServer = await startHealthServer(config.HEALTH_PORT, () => ready);
+        healthServer = await startHealthServer(config.HEALTH_PORT, () => ready, { sepayHandler });
+        stopDeliveryWorker = deliveryQueue.start();
         ready = true;
 
         console.log(`🤖 ${config.SHOP_NAME} Bot đã khởi động!`);
         console.log(`👤 Admin ID: ${config.ADMIN_ID}`);
         console.log(`🏦 Bank: ${config.BANK.NAME} (đã cấu hình)`);
         console.log(`💚 Health check: http://0.0.0.0:${config.HEALTH_PORT}/healthz`);
+        console.log(`💳 SePay webhook: ${config.SEPAY_WEBHOOK_SECRET ? 'enabled' : 'disabled until secret is configured'}`);
 
         // Start Google Sheet auto-sync
         const { startAutoSync } = require('./services/sheetSync');
@@ -70,7 +92,6 @@ async function start() {
 
         // Keep recoverable database snapshots on a separate volume.
         const { startBackupScheduler } = require('./services/backupService');
-        const db = require('./database');
         startBackupScheduler(db);
     } catch (err) {
         console.error('❌ Không thể khởi động bot:', err.message);
@@ -99,6 +120,7 @@ async function shutdown(signal) {
     if (stopping) return;
     stopping = true;
     ready = false;
+    if (stopDeliveryWorker) stopDeliveryWorker();
 
     if (healthServer) {
         await new Promise((resolve) => healthServer.close(resolve));
