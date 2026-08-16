@@ -4,6 +4,8 @@ const productService = require('../services/productService');
 const userService = require('../services/userService');
 const { deliverOrder } = require('./paymentConfirm');
 const { formatPrice } = require('../utils/keyboard');
+const { customEmojiHtml, escapeHtml } = require('../utils/telegramMarkup');
+const { showAdminStock, showProductStock } = require('./navigation');
 const { Markup } = require('telegraf');
 const fs = require('fs');
 const path = require('path');
@@ -65,7 +67,7 @@ module.exports = (bot) => {
             `/deleteproduct [ID] — Xóa sản phẩm\n\n` +
             `📋 <b>QUẢN LÝ KHO:</b>\n` +
             `/addstock [ID] — Thêm tài khoản vào kho\n` +
-            `/viewstock [ID] — Xem kho sản phẩm\n` +
+            `/viewstock [ID] — Xem, sửa hoặc xóa từng stock\n` +
             `/clearstock [ID] — Xóa toàn bộ kho (chưa bán)\n\n` +
             `💰 <b>ĐƠN HÀNG & THANH TOÁN:</b>\n` +
             `/pending — Xem đơn chờ thanh toán\n` +
@@ -308,31 +310,12 @@ module.exports = (bot) => {
     bot.command('viewstock', adminOnly, (ctx) => {
         const args = ctx.message.text.split(' ');
         if (args.length < 2) {
-            const products = productService.getAll();
-            let list = products.map((p) => `  #${p.id} ${p.name} — 📦 ${p.stock_count} sản phẩm`).join('\n');
-            return ctx.replyWithHTML(`🏪 <b>TỒN KHO</b>\n\n${list}\n\n💡 Xem chi tiết: <code>/viewstock [ID]</code>`);
+            return showAdminStock(ctx);
         }
 
         const productId = parseInt(args[1]);
-        const product = productService.getById(productId);
-        if (!product) return ctx.reply('❌ Sản phẩm không tồn tại');
-
-        const db = require('../database');
-        const items = db.prepare('SELECT * FROM stock WHERE product_id = ? AND is_sold = 0 LIMIT 20').all(productId);
-
-        if (items.length === 0) {
-            return ctx.replyWithHTML(`📦 <b>${product.name}</b>\n\n❌ Kho trống!`);
-        }
-
-        let text = `📦 <b>${product.name}</b> — ${product.stock_count} sản phẩm\n\n`;
-        items.forEach((item, i) => {
-            text += `${i + 1}. <code>${item.data}</code>\n`;
-        });
-        if (product.stock_count > 20) {
-            text += `\n... và ${product.stock_count - 20} sản phẩm khác`;
-        }
-
-        ctx.replyWithHTML(text);
+        if (!Number.isSafeInteger(productId)) return ctx.reply('❌ Product ID không hợp lệ.');
+        return showProductStock(ctx, productId);
     });
 
     // /clearstock [ID] - Clear unsold stock
@@ -592,7 +575,7 @@ module.exports = (bot) => {
         const db = require('../database');
         const products = db.prepare(`
       SELECT p.id as product_id, p.name, p.price, p.emoji, p.promotion, p.contact_only, p.is_active, p.category_id,
-        c.name as cat_name, c.emoji as cat_emoji,
+        c.name as cat_name, c.emoji as cat_emoji, c.custom_emoji_id as cat_custom_emoji_id,
         (SELECT COUNT(*) FROM stock s WHERE s.product_id = p.id AND s.is_sold = 0) as stock_count
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
@@ -607,11 +590,11 @@ module.exports = (bot) => {
         products.forEach((p) => {
             if (p.category_id !== currentCat) {
                 currentCat = p.category_id;
-                text += `\n${p.cat_emoji || '📂'} <b>${p.cat_name || 'Chung'}</b>\n`;
+                text += `\n${customEmojiHtml(p.cat_custom_emoji_id, p.cat_emoji || '📂')} <b>${escapeHtml(p.cat_name || 'Chung')}</b>\n`;
             }
 
             const status = p.is_active ? '🟢' : '🔴';
-            text += `${status} <b>ID:${p.product_id}</b> | ${p.name}\n`;
+            text += `${status} <b>ID:${p.product_id}</b> | ${escapeHtml(p.name)}\n`;
             text += `     💰 ${formatPrice(p.price)} | 📦 Kho: ${p.stock_count}`;
             if (p.contact_only) text += ` | 💬 Liên hệ`;
             if (p.promotion) text += ` | ${p.promotion}`;
