@@ -149,7 +149,7 @@ npm start
 | `/addcategory tên \| emoji` | Thêm danh mục |
 | **Kho hàng** | |
 | `/addstock ID` | Thêm tài khoản vào kho |
-| `/viewstock ID` | Xem kho sản phẩm |
+| `/viewstock ID` | Xem chi tiết, sửa hoặc xóa từng stock chưa bán |
 | `/clearstock ID` | Xóa kho chưa bán |
 | **Đơn hàng** | |
 | `/confirm orderID` | ✅ Xác nhận & giao hàng |
@@ -176,6 +176,7 @@ Gửi `/start` hoặc `/menu` một lần để bot cài bàn phím cố định
 - Chỉ đúng `ADMIN_ID` mới có thêm phần **QUẢN TRỊ** ở dưới: quản lý sản phẩm/danh mục, thêm/xem tồn kho, đơn chờ, tất cả đơn, thống kê, người dùng, broadcast, đồng bộ Sheet và cài đặt.
 - Mỗi reply-keyboard button được nối trực tiếp vào action hoặc màn hình nút ngữ cảnh tiếp theo; không yêu cầu nhập lệnh.
 - Tạo danh mục là hội thoại hai bước: nhập tên, sau đó gửi emoji hoặc URL ảnh PNG/JPG công khai. Telegram không hiển thị SVG tùy biến ngay trên inline button; ảnh URL được dùng làm ảnh đầu danh mục, còn nút dùng emoji.
+- Danh mục được cấu hình `custom_emoji_id` sẽ dùng icon custom emoji trên nút và tiêu đề. Trong **Xem tồn kho**, chọn từng stock để xem chi tiết, sửa hoặc xóa; stock đã bán được khóa để giữ nguyên lịch sử đơn hàng.
 - Các lệnh cũ vẫn được giữ để tương thích và xử lý sự cố.
 
 ## 👛 Nạp tiền vào ví

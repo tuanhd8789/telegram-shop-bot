@@ -6,6 +6,7 @@ const {
     replyMenuKeyboard,
     adminMenuKeyboard,
     adminProductMenuKeyboard,
+    stockItemsKeyboard,
     CUSTOMER_REPLY_LABELS,
     ADMIN_REPLY_LABELS,
 } = require('../src/handlers/navigation');
@@ -80,4 +81,28 @@ test('routes the admin add-stock reply button to the product picker', async () =
     assert.equal(replies.length, 1);
     assert.match(replies[0][0], /Chọn sản phẩm cần thêm kho/);
     assert.ok(replies[0][1].reply_markup.inline_keyboard.length > 1);
+});
+
+test('stock keyboard exposes detail, edit and delete actions for every item', () => {
+    const keyboard = stockItemsKeyboard([{ id: 41 }, { id: 42 }], 9);
+    const buttons = keyboard.reply_markup.inline_keyboard.flat();
+    const callbacks = buttons.map((button) => button.callback_data).filter(Boolean);
+
+    for (const stockId of [41, 42]) {
+        assert.ok(callbacks.includes(`nav_stock_item_${stockId}`));
+        assert.ok(callbacks.includes(`nav_stock_edit_${stockId}`));
+        assert.ok(callbacks.includes(`nav_stock_delete_${stockId}`));
+    }
+    assert.ok(callbacks.includes('nav_stock_add_9'));
+    assert.ok(callbacks.includes('nav_admin_view_stock'));
+});
+
+test('stock keyboard paginates inventories larger than one page', () => {
+    const keyboard = stockItemsKeyboard([{ id: 51 }], 9, 1, 3);
+    const callbacks = keyboard.reply_markup.inline_keyboard.flat()
+        .map((button) => button.callback_data)
+        .filter(Boolean);
+
+    assert.ok(callbacks.includes('nav_stock_product_9_0'));
+    assert.ok(callbacks.includes('nav_stock_product_9_2'));
 });

@@ -72,6 +72,46 @@ const productService = {
     },
 
     /**
+     * List unsold stock items for product-level administration.
+     */
+    getStockItems(productId, limit = 20, offset = 0) {
+        return db.prepare(`
+            SELECT id, product_id, data, is_sold, sold_to, sold_at, sold_order_id
+            FROM stock
+            WHERE product_id = ? AND is_sold = 0
+            ORDER BY id
+            LIMIT ? OFFSET ?
+        `).all(productId, limit, offset);
+    },
+
+    /**
+     * Get one stock item with its product name.
+     */
+    getStockItem(stockId) {
+        return db.prepare(`
+            SELECT s.*, p.name product_name
+            FROM stock s
+            JOIN products p ON p.id = s.product_id
+            WHERE s.id = ?
+        `).get(stockId);
+    },
+
+    /**
+     * Update an unsold stock item. Sold stock is immutable order history.
+     */
+    updateStockItem(stockId, data) {
+        return db.prepare('UPDATE stock SET data = ? WHERE id = ? AND is_sold = 0')
+            .run(data.trim(), stockId);
+    },
+
+    /**
+     * Delete an unsold stock item. Sold stock is immutable order history.
+     */
+    deleteStockItem(stockId) {
+        return db.prepare('DELETE FROM stock WHERE id = ? AND is_sold = 0').run(stockId);
+    },
+
+    /**
      * Get available stock for a product
      */
     getAvailableStock(productId, quantity) {

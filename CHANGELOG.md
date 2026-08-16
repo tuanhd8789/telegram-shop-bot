@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here.
 
+## [1.5.0] - 2026-08-16
+
+### Added
+
+- Per-stock administration from `/viewstock` and the reply-keyboard inventory action: paginated detail views plus edit and delete buttons for each unsold stock record.
+- Delete confirmation and immutable protection for stock already linked to completed sales.
+- Telegram `icon_custom_emoji_id` support for category buttons and matching custom emoji entities in category headings.
+
+### Changed
+
+- Inventory navigation now starts with a product picker and exposes every stock action through contextual buttons.
+- Arbitrary category and stock values are HTML-escaped before being rendered in admin messages.
+
 ## [1.4.0] - 2026-08-16
 
 ### Added

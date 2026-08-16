@@ -8,6 +8,7 @@
 - 2026-08-16 — Permission-scoped customer/admin action menus, guided category/product/stock workflows, and idempotent SePay wallet top-ups. Implemented in [v1.3.0](CHANGELOG.md#130---2026-08-16).
 - 2026-08-16 — First-use session initialization for all guided menu actions. Fixed in [v1.3.1](CHANGELOG.md#131---2026-08-16).
 - 2026-08-16 — Persistent role-aware Telegram reply keyboard beside the emoji control, with customer actions above admin actions. Implemented in [v1.4.0](CHANGELOG.md#140---2026-08-16).
+- 2026-08-16 — Paginated per-stock detail/edit/delete controls and custom emoji category icons. Implemented in [v1.5.0](CHANGELOG.md#150---2026-08-16).
 
 ## Next
 

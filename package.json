@@ -1,12 +1,12 @@
 {
     "name": "starizzi-shop-bot",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "description": "Telegram Shop Bot - Starizzi Shop",
     "main": "src/bot.js",
     "scripts": {
         "start": "node src/bot.js",
         "dev": "node --watch src/bot.js",
-        "check": "node --check src/bot.js && node --check src/botLifecycle.js && node --check src/commandMenu.js && node --check src/configValidation.js && node --check src/healthServer.js && node --check src/healthcheck.js && node --check src/sepayWebhook.js && node --check src/session.js && node --check src/handlers/navigation.js && node --check src/services/backupService.js && node --check src/services/deliveryQueue.js && node --check src/services/manualDeliveryService.js && node --check src/services/sepayPaymentService.js && node --check src/services/walletService.js",
+        "check": "node --check src/bot.js && node --check src/botLifecycle.js && node --check src/commandMenu.js && node --check src/configValidation.js && node --check src/healthServer.js && node --check src/healthcheck.js && node --check src/sepayWebhook.js && node --check src/session.js && node --check src/handlers/adminActions.js && node --check src/handlers/navigation.js && node --check src/services/backupService.js && node --check src/services/deliveryQueue.js && node --check src/services/manualDeliveryService.js && node --check src/services/productService.js && node --check src/services/sepayPaymentService.js && node --check src/services/walletService.js && node --check src/utils/telegramMarkup.js",
         "test": "node --test"
     },
     "dependencies": {

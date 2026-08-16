@@ -6,8 +6,11 @@ const productService = require('../services/productService');
 const orderService = require('../services/orderService');
 const messages = require('../utils/messages');
 const { formatPrice, productListKeyboard } = require('../utils/keyboard');
+const { callbackWithCustomEmoji, customEmojiHtml, escapeHtml } = require('../utils/telegramMarkup');
 const productCommand = require('../commands/product');
 const topupCommand = require('../commands/nap');
+
+const STOCK_PAGE_SIZE = 10;
 
 function isAdmin(ctx) {
     return ctx.from.id === config.ADMIN_ID;
@@ -74,7 +77,11 @@ function showMainMenu(ctx, text) {
 
 function categoriesKeyboard() {
     const rows = productService.getCategories().map((category) => [
-        Markup.button.callback(`${category.emoji || '📂'} ${category.name}`, `nav_category_${category.id}`),
+        callbackWithCustomEmoji(
+            category.custom_emoji_id ? category.name : `${category.emoji || '📂'} ${category.name}`,
+            `nav_category_${category.id}`,
+            category.custom_emoji_id
+        ),
     ]);
     rows.push([Markup.button.callback('📦 Tất cả sản phẩm', 'nav_products')]);
     rows.push([Markup.button.callback('↩️ Menu', 'nav_menu')]);
@@ -164,7 +171,8 @@ function showCustomerOrders(ctx) {
 function showAdminCategories(ctx) {
     const categories = productService.getCategories();
     return ctx.replyWithHTML(categories.map((item) =>
-        `<b>#${item.id}</b> ${item.emoji || '📂'} ${item.name}${item.image_url ? '\n   🖼 ' + item.image_url : ''}`
+        `<b>#${item.id}</b> ${customEmojiHtml(item.custom_emoji_id, item.emoji || '📂')} ${escapeHtml(item.name)}` +
+        `${item.image_url ? '\n   🖼 ' + escapeHtml(item.image_url) : ''}`
     ).join('\n'));
 }
 
@@ -175,9 +183,73 @@ function beginAddStock(ctx) {
 
 function showAdminStock(ctx) {
     const products = productService.getAll();
-    return ctx.replyWithHTML(products.map((item) =>
-        `<b>#${item.id}</b> ${item.name} — 📦 ${item.stock_count}`
-    ).join('\n') || '📦 Kho trống.');
+    if (products.length === 0) return ctx.reply('📦 Chưa có sản phẩm.');
+    const rows = products.map((item) => [
+        Markup.button.callback(`👁 #${item.id} ${item.name} (${item.stock_count})`, `nav_stock_product_${item.id}`),
+    ]);
+    rows.push([Markup.button.callback('↩️ Quản trị', 'nav_admin')]);
+    return ctx.replyWithHTML(
+        '🏪 <b>TỒN KHO</b>\n\nChọn sản phẩm để xem từng stock và thao tác:',
+        Markup.inlineKeyboard(rows)
+    );
+}
+
+function stockItemsKeyboard(items, productId, page = 0, totalPages = 1) {
+    const rows = items.map((item) => [
+        Markup.button.callback(`👁 #${item.id}`, `nav_stock_item_${item.id}`),
+        Markup.button.callback(`✏️ #${item.id}`, `nav_stock_edit_${item.id}`),
+        Markup.button.callback(`🗑 #${item.id}`, `nav_stock_delete_${item.id}`),
+    ]);
+    if (totalPages > 1) {
+        const pagination = [];
+        if (page > 0) pagination.push(Markup.button.callback('⬅️ Trang trước', `nav_stock_product_${productId}_${page - 1}`));
+        if (page + 1 < totalPages) pagination.push(Markup.button.callback('Trang sau ➡️', `nav_stock_product_${productId}_${page + 1}`));
+        rows.push(pagination);
+    }
+    rows.push([Markup.button.callback('↩️ Danh sách sản phẩm', 'nav_admin_view_stock')]);
+    if (productId) rows.push([Markup.button.callback('📥 Thêm stock', `nav_stock_add_${productId}`)]);
+    return Markup.inlineKeyboard(rows);
+}
+
+function showProductStock(ctx, productId, requestedPage = 0) {
+    const product = productService.getById(productId);
+    if (!product) return ctx.reply('❌ Sản phẩm không tồn tại.');
+    const totalPages = Math.max(1, Math.ceil(product.stock_count / STOCK_PAGE_SIZE));
+    const page = Math.min(Math.max(0, requestedPage), totalPages - 1);
+    const items = productService.getStockItems(productId, STOCK_PAGE_SIZE, page * STOCK_PAGE_SIZE);
+    if (items.length === 0) {
+        return ctx.replyWithHTML(
+            `📦 <b>${escapeHtml(product.name)}</b>\n\nKho chưa bán đang trống.`,
+            stockItemsKeyboard(items, product.id, page, totalPages)
+        );
+    }
+    const text = items.map((item) => `<b>#${item.id}</b> <code>${escapeHtml(item.data)}</code>`).join('\n');
+    return ctx.replyWithHTML(
+        `📦 <b>${escapeHtml(product.name)}</b> — ${product.stock_count} stock chưa bán — trang ${page + 1}/${totalPages}\n\n${text}` +
+        '\n\nChọn 👁 xem chi tiết, ✏️ sửa hoặc 🗑 xóa:',
+        stockItemsKeyboard(items, product.id, page, totalPages)
+    );
+}
+
+function showStockItem(ctx, stockId) {
+    const item = productService.getStockItem(stockId);
+    if (!item) return ctx.reply('❌ Stock không tồn tại.');
+    const soldText = item.is_sold
+        ? `Đã bán${item.sold_order_id ? ` — đơn #${item.sold_order_id}` : ''}`
+        : 'Chưa bán';
+    const rows = item.is_sold ? [] : [[
+        Markup.button.callback('✏️ Sửa stock', `nav_stock_edit_${item.id}`),
+        Markup.button.callback('🗑 Xóa stock', `nav_stock_delete_${item.id}`),
+    ]];
+    rows.push([Markup.button.callback('↩️ Kho sản phẩm', `nav_stock_product_${item.product_id}`)]);
+    return ctx.replyWithHTML(
+        `👁 <b>CHI TIẾT STOCK #${item.id}</b>\n\n` +
+        `📦 Sản phẩm: <b>${escapeHtml(item.product_name)}</b> (#${item.product_id})\n` +
+        `📋 Trạng thái: <b>${soldText}</b>\n` +
+        `🔐 Dữ liệu:\n<code>${escapeHtml(item.data)}</code>` +
+        (item.is_sold ? '\n\n🔒 Stock đã bán được khóa để bảo toàn lịch sử đơn hàng.' : ''),
+        Markup.inlineKeyboard(rows)
+    );
 }
 
 function showAdminOrders(ctx) {
@@ -248,7 +320,7 @@ function registerNavigation(bot) {
         const products = productService.getByCategory(category.id);
         if (products.length === 0) return ctx.reply('❌ Danh mục này chưa có sản phẩm.');
         const sendProducts = () => ctx.replyWithHTML(
-            `${category.emoji || '📂'} <b>${category.name}</b>`,
+            `${customEmojiHtml(category.custom_emoji_id, category.emoji || '📂')} <b>${escapeHtml(category.name)}</b>`,
             productListKeyboard(products)
         );
         if (category.image_url) {
@@ -370,7 +442,11 @@ function registerNavigation(bot) {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
         ctx.answerCbQuery();
         const rows = productService.getCategories().map((item) => [
-            Markup.button.callback(`${item.emoji || '📂'} ${item.name}`, `nav_product_category_${item.id}`),
+            callbackWithCustomEmoji(
+                item.custom_emoji_id ? item.name : `${item.emoji || '📂'} ${item.name}`,
+                `nav_product_category_${item.id}`,
+                item.custom_emoji_id
+            ),
         ]);
         return ctx.replyWithHTML('➕ <b>TẠO SẢN PHẨM</b>\n\nChọn danh mục:', Markup.inlineKeyboard(rows));
     });
@@ -419,6 +495,54 @@ function registerNavigation(bot) {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
         ctx.answerCbQuery();
         return showAdminStock(ctx);
+    });
+    bot.action(/^nav_stock_product_(\d+)(?:_(\d+))?$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        return showProductStock(ctx, Number(ctx.match[1]), Number(ctx.match[2] || 0));
+    });
+    bot.action(/^nav_stock_item_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        return showStockItem(ctx, Number(ctx.match[1]));
+    });
+    bot.action(/^nav_stock_edit_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        const item = productService.getStockItem(Number(ctx.match[1]));
+        if (!item) return ctx.answerCbQuery('❌ Stock không tồn tại');
+        if (item.is_sold) return ctx.answerCbQuery('🔒 Không thể sửa stock đã bán', { show_alert: true });
+        ctx.answerCbQuery();
+        ctx.session.navigation = { action: 'edit_stock', stockId: item.id, productId: item.product_id };
+        return ctx.replyWithHTML(
+            `✏️ Gửi dữ liệu mới cho stock <b>#${item.id}</b>.\n\nHiện tại:\n<code>${escapeHtml(item.data)}</code>\n\nGõ /cancel để hủy.`
+        );
+    });
+    bot.action(/^nav_stock_delete_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        const item = productService.getStockItem(Number(ctx.match[1]));
+        if (!item) return ctx.answerCbQuery('❌ Stock không tồn tại');
+        if (item.is_sold) return ctx.answerCbQuery('🔒 Không thể xóa stock đã bán', { show_alert: true });
+        ctx.answerCbQuery();
+        return ctx.replyWithHTML(
+            `⚠️ Xóa stock <b>#${item.id}</b> của <b>${escapeHtml(item.product_name)}</b>?\n\n<code>${escapeHtml(item.data)}</code>`,
+            Markup.inlineKeyboard([[
+                Markup.button.callback('🗑 Xác nhận xóa', `nav_stock_delete_confirm_${item.id}`),
+                Markup.button.callback('❌ Hủy', `nav_stock_item_${item.id}`),
+            ]])
+        );
+    });
+    bot.action(/^nav_stock_delete_confirm_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        const item = productService.getStockItem(Number(ctx.match[1]));
+        if (!item) return ctx.answerCbQuery('❌ Stock không tồn tại');
+        if (item.is_sold) return ctx.answerCbQuery('🔒 Không thể xóa stock đã bán', { show_alert: true });
+        const result = productService.deleteStockItem(item.id);
+        if (result.changes !== 1) return ctx.answerCbQuery('❌ Stock đã thay đổi, vui lòng tải lại', { show_alert: true });
+        ctx.answerCbQuery('🗑 Đã xóa stock');
+        return ctx.replyWithHTML(
+            `🗑 Đã xóa stock <b>#${item.id}</b>.`,
+            Markup.inlineKeyboard([[Markup.button.callback('↩️ Kho sản phẩm', `nav_stock_product_${item.product_id}`)]])
+        );
     });
     bot.action('nav_admin_orders', (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
@@ -544,6 +668,22 @@ function registerNavigation(bot) {
             delete ctx.session.navigation;
             return ctx.reply(`✅ Đã thêm ${lines.length} mặt hàng vào kho.`);
         }
+        if (state.action === 'edit_stock') {
+            const item = productService.getStockItem(state.stockId);
+            if (!item || item.is_sold) {
+                delete ctx.session.navigation;
+                return ctx.reply('❌ Stock không tồn tại hoặc đã được bán.');
+            }
+            const data = text.trim();
+            if (!data) return ctx.reply('❌ Dữ liệu stock không được để trống.');
+            const result = productService.updateStockItem(item.id, data);
+            delete ctx.session.navigation;
+            if (result.changes !== 1) return ctx.reply('❌ Không thể cập nhật stock; vui lòng tải lại.');
+            return ctx.replyWithHTML(
+                `✅ Đã cập nhật stock <b>#${item.id}</b>.\n\n<code>${escapeHtml(data)}</code>`,
+                Markup.inlineKeyboard([[Markup.button.callback('👁 Xem chi tiết', `nav_stock_item_${item.id}`)]])
+            );
+        }
         if (state.action === 'broadcast') {
             delete ctx.session.navigation;
             const users = db.prepare('SELECT telegram_id FROM users').all();
@@ -562,6 +702,10 @@ module.exports = {
     adminMenuKeyboard,
     adminProductMenuKeyboard,
     adminCategoryMenuKeyboard,
+    showAdminStock,
+    showProductStock,
+    showStockItem,
+    stockItemsKeyboard,
     CUSTOMER_REPLY_LABELS,
     ADMIN_REPLY_LABELS,
 };

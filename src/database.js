@@ -28,6 +28,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     emoji TEXT DEFAULT '📦',
+    custom_emoji_id TEXT,
     sort_order INTEGER DEFAULT 0,
     image_url TEXT
   );
@@ -124,6 +125,7 @@ try { db.exec('ALTER TABLE products ADD COLUMN contact_url TEXT'); } catch (e) {
 try { db.exec('ALTER TABLE products ADD COLUMN sheet_stock INTEGER DEFAULT 0'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE stock ADD COLUMN sold_order_id INTEGER'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE categories ADD COLUMN image_url TEXT'); } catch (e) { /* already exists */ }
+try { db.exec('ALTER TABLE categories ADD COLUMN custom_emoji_id TEXT'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE payment_transactions ADD COLUMN topup_id INTEGER'); } catch (e) { /* already exists */ }
 
 // Seed data - only if categories table is empty

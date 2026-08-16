@@ -149,7 +149,7 @@ npm start
 | `/addcategory name \| emoji` | Add category |
 | **Inventory** | |
 | `/addstock ID` | Add accounts to stock |
-| `/viewstock ID` | View product stock |
+| `/viewstock ID` | View details, edit, or delete each unsold stock record |
 | `/clearstock ID` | Clear unsold stock |
 | **Orders** | |
 | `/confirm orderID` | ✅ Confirm & deliver |
@@ -173,6 +173,8 @@ The bot registers a chat-scoped admin command menu for `ADMIN_ID`; other account
 Send `/start` or `/menu` once to install the persistent keyboard, then use the **four-square keyboard icon beside the emoji control** to hide or show it. Customers only receive the top customer section. `ADMIN_ID` additionally receives the lower administration section for products, categories, stock, orders, statistics, users, broadcast, Sheet sync, and settings. Every reply-keyboard label routes directly to an action or the next contextual button screen; legacy commands remain available for compatibility.
 
 Category creation asks for a name, then an emoji or a public PNG/JPG URL. Telegram inline buttons cannot display custom SVG images, so the button uses an emoji and the URL is shown as the category card image.
+
+Categories configured with `custom_emoji_id` use the selected Telegram custom emoji on buttons and category headings. In inventory management, choose **View stock** or run `/viewstock ID`, then select an individual record to view, edit, or delete it. Sold stock is locked to preserve order history.
 
 ## 👛 Wallet top-ups
 
