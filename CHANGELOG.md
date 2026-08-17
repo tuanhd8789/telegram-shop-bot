@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here.
 
+## [1.7.0] - 2026-08-17
+
+### Added
+
+- Admin-only, one-shot AI assistance through `/ai`, with bounded input/output, request timeout, and single-flight protection.
+- Admin menu entries, Docker host-gateway support for a host-based OpenAI-compatible provider, and bilingual operation guidance.
+
+### Security
+
+- Reject non-admin callers before contacting the AI provider.
+- Keep the first AI phase stateless and read-only, without tools, database, shell, configuration, secret, or conversation-history access.
+
 ## [1.6.1] - 2026-08-17
 
 ### Changed

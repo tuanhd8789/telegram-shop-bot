@@ -29,6 +29,8 @@ docker compose config --quiet
 
 ## 3. Staging smoke test
 
+To enable the admin assistant, set `AI_ENABLED=true`, `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`, and `AI_API_MODE=chat_completions`. If the provider runs on the Docker host, use `AI_BASE_URL=http://host.docker.internal:<port>/v1`; Compose already supplies the host-gateway mapping. See the [admin AI guide](docs/admin-ai.en.md).
+
 ```bash
 docker compose build
 docker compose up -d

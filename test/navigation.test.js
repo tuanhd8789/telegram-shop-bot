@@ -38,6 +38,7 @@ test('admin reply keyboard keeps customer actions above admin actions', () => {
     assert.ok(inlineAdminLabels.includes('➕ Tạo sản phẩm'));
     assert.ok(inlineAdminLabels.includes('📥 Thêm kho'));
     assert.ok(inlineAdminLabels.includes('📣 Gửi thông báo'));
+    assert.ok(inlineAdminLabels.includes('🤖 Trợ lý AI'));
 
     const productLabels = labels(adminProductMenuKeyboard());
     for (const label of ['📦 Tất cả sản phẩm', '➕ Tạo sản phẩm', '💵 Sửa giá', '✏️ Sửa tên', '🔁 Bật/tắt', '🗑 Xóa']) {

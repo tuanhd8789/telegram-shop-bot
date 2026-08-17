@@ -9,6 +9,7 @@ const { createSePayPaymentService } = require('./services/sepayPaymentService');
 const { createDeliveryQueue } = require('./services/deliveryQueue');
 const db = require('./database');
 const { createSessionMiddleware } = require('./session');
+const { createAiService } = require('./services/aiService');
 
 const configErrors = validateConfig(config);
 if (configErrors.length > 0) {
@@ -17,6 +18,13 @@ if (configErrors.length > 0) {
 }
 
 const bot = new Telegraf(config.BOT_TOKEN);
+const aiService = config.AI.ENABLED ? createAiService({
+    baseUrl: config.AI.BASE_URL,
+    apiKey: config.AI.API_KEY,
+    model: config.AI.MODEL,
+    timeoutMs: config.AI.TIMEOUT_MS,
+    maxTokens: config.AI.MAX_TOKENS,
+}) : null;
 const bankAccounts = [config.BANK.ACCOUNT, config.BANK2?.ACCOUNT].filter(Boolean);
 const sepayPaymentService = createSePayPaymentService({
     db,
@@ -54,6 +62,11 @@ require('./commands/nap')(bot);
 require('./commands/checkpay')(bot);
 require('./commands/support')(bot);
 require('./commands/myid')(bot);
+require('./commands/ai')(bot, {
+    adminId: config.ADMIN_ID,
+    enabled: config.AI.ENABLED,
+    aiService,
+});
 require('./handlers/navigation').registerNavigation(bot);
 
 // Register handlers
@@ -87,6 +100,7 @@ async function start() {
         console.log(`🏦 Bank: ${config.BANK.NAME} (đã cấu hình)`);
         console.log(`💚 Health check: http://0.0.0.0:${config.HEALTH_PORT}/healthz`);
         console.log(`💳 SePay webhook: ${config.SEPAY_WEBHOOK_SECRET ? 'enabled' : 'disabled until secret is configured'}`);
+        console.log(`🤖 Admin AI: ${config.AI.ENABLED ? `enabled (${config.AI.MODEL})` : 'disabled'}`);
 
         // Start Google Sheet auto-sync
         const { startAutoSync } = require('./services/sheetSync');

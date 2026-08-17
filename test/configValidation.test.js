@@ -36,3 +36,21 @@ test('rejects a configured SePay secret that is too short', () => {
         'SEPAY_WEBHOOK_SECRET must be at least 32 characters when enabled',
     ]);
 });
+
+test('requires a complete chat-completions configuration when AI is enabled', () => {
+    const config = validConfig();
+    config.AI = {
+        ENABLED: true,
+        BASE_URL: 'not-a-url',
+        API_KEY: '',
+        MODEL: '',
+        API_MODE: 'responses',
+    };
+
+    assert.deepEqual(validateConfig(config), [
+        'AI_API_KEY is required when AI is enabled',
+        'AI_MODEL is required when AI is enabled',
+        'AI_API_MODE must be chat_completions in the admin-only phase',
+        'AI_BASE_URL must be a valid http(s) URL when AI is enabled',
+    ]);
+});

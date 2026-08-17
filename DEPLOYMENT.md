@@ -29,6 +29,8 @@ docker compose config --quiet
 
 ## 3. Chạy bản thử nghiệm
 
+Nếu bật trợ lý admin, điền `AI_ENABLED=true`, `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL` và `AI_API_MODE=chat_completions`. Khi provider chạy trên chính máy Docker host, dùng `AI_BASE_URL=http://host.docker.internal:<port>/v1`; Compose đã khai báo host gateway cho container. Xem [hướng dẫn AI cho admin](docs/admin-ai.md).
+
 ```bash
 docker compose build
 docker compose up -d

@@ -11,9 +11,11 @@
 - 2026-08-16 — Paginated per-stock detail/edit/delete controls and custom emoji category icons. Implemented in [v1.5.0](CHANGELOG.md#150---2026-08-16).
 - 2026-08-16 — Price-first product buttons and per-product Telegram custom emoji icons. Implemented in [v1.6.0](CHANGELOG.md#160---2026-08-16).
 - 2026-08-17 — Product-generic successful delivery messages with plain admin-authored content and Vietnamese `/hotro` guidance. Implemented in [v1.6.1](CHANGELOG.md#161---2026-08-17).
+- 2026-08-17 — Admin-only, read-only AI assistant with a validated OpenAI-compatible provider configuration. Implemented in [v1.7.0](CHANGELOG.md#170---2026-08-17).
 
 ## Next
 
 - Add role-based administration and an auditable admin-action log.
 - Add restore drills and encrypted off-host backup automation for the selected hosting provider.
 - Add Vietnamese/English message catalogs editable by shop administrators.
+- 2026-08-17 request — Add controlled AI self-configuration using a safe-action allowlist, preview and explicit admin confirmation, audit logs, backup, health check, and automatic rollback.
