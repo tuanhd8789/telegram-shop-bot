@@ -20,6 +20,18 @@ AI_MAX_TOKENS=700
 
 If the provider does not run on the Docker host, replace `AI_BASE_URL` with the appropriate internal or public HTTPS URL. Keep the API key only in the server `.env` file with mode `600`.
 
+If the provider runs in another Docker Compose project, connect through its internal network instead of exposing the port to the Internet:
+
+```dotenv
+AI_BASE_URL=http://provider-container:provider-port/v1
+AI_PROVIDER_NETWORK=provider_compose_network
+```
+
+```bash
+docker compose -f compose.yaml -f compose.ai-provider.yaml config --quiet
+docker compose -f compose.yaml -f compose.ai-provider.yaml up -d --build
+```
+
 ## Current usage
 
 ```text
