@@ -71,6 +71,25 @@ test('persists a failed Telegram delivery and retries it later', async () => {
     db.close();
 });
 
+test('renders admin-authored product information as normal text with /hotro guidance', () => {
+    const message = renderJob({
+        kind: 'customer_delivery',
+        payload: JSON.stringify({
+            orderId: 7,
+            productName: 'ChatGPT <Plus>',
+            quantity: 1,
+            accounts: ['Liên hệ admin & gửi địa chỉ mail'],
+        }),
+    });
+
+    assert.match(message, /Thông tin sản phẩm:/);
+    assert.match(message, /ChatGPT &lt;Plus&gt;/);
+    assert.match(message, /Liên hệ admin &amp; gửi địa chỉ mail/);
+    assert.match(message, /Liên hệ với lệnh \/hotro để được hỗ trợ ngay\./);
+    assert.doesNotMatch(message, /<code>/);
+    assert.doesNotMatch(message, /outlook\.com|passchatgpt|\/support/);
+});
+
 test('renders an incoming transfer alert with reconciliation details', () => {
     const message = renderJob({
         kind: 'admin_alert',

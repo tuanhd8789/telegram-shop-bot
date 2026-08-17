@@ -128,7 +128,7 @@ npm start
 | `/product` | 📦 Danh sách sản phẩm |
 | `/nap [số tiền]` | 💰 Nạp số dư |
 | `/checkpay` | 🔍 Kiểm tra thanh toán |
-| `/support` | 🆘 Hỗ trợ |
+| `/hotro` | 🆘 Hỗ trợ (`/support` vẫn tương thích) |
 | `/myid` | 🆔 Lấy Telegram ID |
 
 </details>

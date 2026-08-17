@@ -38,7 +38,7 @@ module.exports = (bot) => {
             `📝 <b>GIAO HÀNG THỦ CÔNG — Đơn #${order.id}</b>\n\n` +
             `📦 SP: <b>${product.name}</b>\n` +
             `📊 SL: ${order.quantity}\n\n` +
-            `👇 Gửi thông tin tài khoản ngay bây giờ, mỗi tài khoản một dòng.\n` +
+            `👇 Gửi nội dung sản phẩm ngay bây giờ, mỗi sản phẩm một dòng.\n` +
             `Bot sẽ lưu job và tự retry nếu Telegram tạm lỗi.\n\n` +
             `Gõ /cancel để hủy.`
         );
@@ -283,9 +283,9 @@ module.exports = (bot) => {
             const products = productService.getAll();
             let list = products.map((p) => `  #${p.id} ${p.name} (kho: ${p.stock_count})`).join('\n');
             return ctx.replyWithHTML(
-                `📦 <b>THÊM TÀI KHOẢN VÀO KHO</b>\n\n` +
+                `📦 <b>THÊM NỘI DUNG SẢN PHẨM VÀO KHO</b>\n\n` +
                 `Cách dùng: <code>/addstock [productID]</code>\n\n` +
-                `Sau đó gửi danh sách tài khoản (mỗi dòng 1 cái).\n\n` +
+                `Sau đó gửi nội dung admin soạn sẵn để giao cho khách (mỗi sản phẩm một dòng).\n\n` +
                 `📋 <b>Sản phẩm:</b>\n${list}`
             );
         }
@@ -297,11 +297,11 @@ module.exports = (bot) => {
         // Set admin waiting state
         adminState[ctx.from.id] = { action: 'addstock', productId };
         ctx.replyWithHTML(
-            `📦 Thêm tài khoản cho: <b>${product.name}</b>\n` +
+            `📦 Thêm nội dung giao hàng cho: <b>${product.name}</b>\n` +
             `📊 Kho hiện tại: ${product.stock_count}\n\n` +
-            `👇 Gửi danh sách tài khoản ngay bây giờ (mỗi dòng 1 cái):\n\n` +
+            `👇 Gửi nội dung admin soạn sẵn (mỗi sản phẩm một dòng):\n\n` +
             `<i>Ví dụ:</i>\n` +
-            `<code>email1@outlook.com|pass1|chatgpt_pass1\nemail2@outlook.com|pass2|chatgpt_pass2</code>\n\n` +
+            `<code>Link tải: https://example.com | Mã: ABC-123\nHướng dẫn kích hoạt: liên hệ /hotro</code>\n\n` +
             `Gõ /cancel để hủy.`
         );
     });
@@ -529,7 +529,7 @@ module.exports = (bot) => {
             const product = productService.getById(state.productId);
 
             ctx.replyWithHTML(
-                `✅ <b>Đã thêm ${lines.length} tài khoản!</b>\n\n` +
+                `✅ <b>Đã thêm ${lines.length} nội dung sản phẩm!</b>\n\n` +
                 `├ Sản phẩm: ${product.name}\n` +
                 `└ 📦 Tồn kho: <b>${product.stock_count}</b>`
             );

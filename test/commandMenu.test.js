@@ -17,6 +17,8 @@ test('registers public commands globally and admin commands only for the admin c
     assert.equal(calls.length, 2);
     assert.equal(calls[0].extra, undefined);
     assert.equal(calls[0].commands.some(({ command }) => command === 'admin'), false);
+    assert.equal(calls[0].commands.some(({ command }) => command === 'hotro'), true);
+    assert.equal(calls[0].commands.some(({ command }) => command === 'support'), false);
     assert.deepEqual(calls[1].extra, {
         scope: { type: 'chat', chat_id: 400332489 },
     });
