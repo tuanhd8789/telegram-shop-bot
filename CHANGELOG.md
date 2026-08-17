@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [1.6.1] - 2026-08-17
+
+### Changed
+
+- Successful order messages now label delivered content as “Thông tin sản phẩm” and render the admin-authored stock text normally instead of as quoted code.
+- Replaced the account-specific Outlook guidance with “Liên hệ với lệnh /hotro để được hỗ trợ ngay.”
+- Added `/hotro` to the public command menu while retaining `/support` as a compatibility alias.
+
 ## [1.6.0] - 2026-08-16
 
 ### Added

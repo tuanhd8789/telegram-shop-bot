@@ -1,5 +1,6 @@
 const config = require('../config');
 const { formatPrice } = require('./keyboard');
+const { escapeHtml } = require('./telegramMarkup');
 
 const SHOP = config.SHOP_NAME;
 
@@ -48,21 +49,20 @@ const messages = {
     orderSuccess: (product, quantity, accounts) => {
         let msg =
             `✅ <b>ĐƠN HÀNG THÀNH CÔNG!</b>\n\n` +
-            `📦 ${product.name} × ${quantity}\n\n` +
-            `🔑 <b>Thông tin tài khoản:</b>\n`;
+            `📦 ${escapeHtml(product.name)} × ${quantity}\n\n` +
+            `🔑 <b>Thông tin sản phẩm:</b>\n`;
 
         accounts.forEach((acc, i) => {
-            msg += `${i + 1})\n<code>${acc}</code>\n`;
+            msg += `${i + 1})\n${escapeHtml(acc)}\n`;
         });
 
-        msg += `\n📖 <b>Hướng dẫn:</b> maill | passmail | passchatgpt\n` +
-            `log vào outlook.com để lấy code nha các bạn`;
+        msg += `\nLiên hệ với lệnh /hotro để được hỗ trợ ngay.`;
 
         return msg;
     },
 
     orderSuccessNotify: (quantity) =>
-        `✅ Đã mua thành công ${quantity} tài khoản! Kiểm tra tin nhắn bên dưới.`,
+        `✅ Đã mua thành công ${quantity} sản phẩm! Kiểm tra tin nhắn bên dưới.`,
 
     noStock:
         '❌ Rất tiếc, sản phẩm đã hết hàng. Vui lòng thử lại sau.',

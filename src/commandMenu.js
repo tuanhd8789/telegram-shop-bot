@@ -4,7 +4,7 @@ const userCommands = [
     { command: 'product', description: '📦 Danh sách sản phẩm' },
     { command: 'nap', description: '💰 Nạp số dư' },
     { command: 'checkpay', description: '🔍 Kiểm tra thanh toán' },
-    { command: 'support', description: '🆘 Hỗ trợ' },
+    { command: 'hotro', description: '🆘 Hỗ trợ' },
     { command: 'myid', description: '🆔 Lấy ID của bạn' },
 ];
 

@@ -128,7 +128,7 @@ npm start
 | `/product` | 📦 Product listing |
 | `/nap [amount]` | 💰 Top up balance |
 | `/checkpay` | 🔍 Check payment status |
-| `/support` | 🆘 Get support |
+| `/hotro` | 🆘 Get support (`/support` remains compatible) |
 | `/myid` | 🆔 Get your Telegram ID |
 
 </details>

@@ -1,20 +1,15 @@
-function escapeHtml(value) {
-    return String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;');
-}
+const { escapeHtml } = require('../utils/telegramMarkup');
 
 function renderCustomerDelivery(payload) {
     const accounts = payload.accounts
-        .map((account, index) => `${index + 1}) <code>${escapeHtml(account)}</code>`)
+        .map((account, index) => `${index + 1})\n${escapeHtml(account)}`)
         .join('\n');
     return (
         `✅ <b>THANH TOÁN THÀNH CÔNG</b>\n\n` +
         `🧾 Đơn hàng: <b>#${payload.orderId}</b>\n` +
         `📦 ${escapeHtml(payload.productName)} × ${payload.quantity}\n\n` +
-        `🔑 <b>Thông tin giao hàng:</b>\n${accounts}\n\n` +
-        `Nếu cần hỗ trợ, hãy dùng lệnh /support.`
+        `🔑 <b>Thông tin sản phẩm:</b>\n${accounts}\n\n` +
+        `Liên hệ với lệnh /hotro để được hỗ trợ ngay.`
     );
 }
 

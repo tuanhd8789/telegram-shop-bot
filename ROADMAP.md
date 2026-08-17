@@ -10,6 +10,7 @@
 - 2026-08-16 — Persistent role-aware Telegram reply keyboard beside the emoji control, with customer actions above admin actions. Implemented in [v1.4.0](CHANGELOG.md#140---2026-08-16).
 - 2026-08-16 — Paginated per-stock detail/edit/delete controls and custom emoji category icons. Implemented in [v1.5.0](CHANGELOG.md#150---2026-08-16).
 - 2026-08-16 — Price-first product buttons and per-product Telegram custom emoji icons. Implemented in [v1.6.0](CHANGELOG.md#160---2026-08-16).
+- 2026-08-17 — Product-generic successful delivery messages with plain admin-authored content and Vietnamese `/hotro` guidance. Implemented in [v1.6.1](CHANGELOG.md#161---2026-08-17).
 
 ## Next
 
