@@ -139,6 +139,7 @@ npm start
 | Lệnh | Mô tả |
 |-------|--------|
 | `/admin` | 📊 Admin panel tổng quan |
+| `/ai câu hỏi` | 🤖 Hỏi trợ lý AI chỉ dành cho admin |
 | **Sản phẩm** | |
 | `/listproduct` | Xem tất cả sản phẩm |
 | `/addproduct catID \| tên \| giá` | Thêm sản phẩm mới |
@@ -167,6 +168,8 @@ npm start
 </details>
 
 Bot đăng ký menu lệnh quản trị riêng cho chat có `ADMIN_ID`; tài khoản khác chỉ thấy các lệnh khách hàng. Admin cần mở chat riêng với bot và gửi `/start` ít nhất một lần để Telegram nhận diện chat.
+
+Trợ lý `/ai` hiện là chế độ chỉ đọc, không có tool tự sửa bot. Xem [hướng dẫn AI cho admin](docs/admin-ai.md).
 
 ## 🧭 Menu bàn phím không cần gõ lệnh
 

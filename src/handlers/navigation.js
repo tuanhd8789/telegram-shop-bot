@@ -28,6 +28,7 @@ const CUSTOMER_REPLY_LABELS = [
 
 const ADMIN_REPLY_LABELS = [
     '🔧 QUẢN TRỊ',
+    '🤖 Trợ lý AI',
     '📦 Quản lý sản phẩm',
     '🗂 Quản lý danh mục',
     '📥 Thêm tồn kho',
@@ -52,6 +53,7 @@ function replyMenuKeyboard(admin) {
     if (admin) {
         rows.push(
             [Markup.button.text('🔧 QUẢN TRỊ')],
+            [Markup.button.text('🤖 Trợ lý AI')],
             [Markup.button.text('📦 Quản lý sản phẩm'), Markup.button.text('🗂 Quản lý danh mục')],
             [Markup.button.text('📥 Thêm tồn kho'), Markup.button.text('👁 Xem tồn kho')],
             [Markup.button.text('🧹 Xóa tồn kho')],
@@ -90,6 +92,7 @@ function categoriesKeyboard() {
 
 function adminMenuKeyboard() {
     return Markup.inlineKeyboard([
+        [Markup.button.callback('🤖 Trợ lý AI', 'nav_admin_ai')],
         [Markup.button.callback('📦 Tất cả sản phẩm', 'adm_products'), Markup.button.callback('➕ Tạo sản phẩm', 'nav_admin_add_product')],
         [Markup.button.callback('🗂 Danh mục', 'nav_admin_categories'), Markup.button.callback('➕ Tạo danh mục', 'nav_admin_add_category')],
         [Markup.button.callback('📥 Thêm kho', 'nav_admin_add_stock'), Markup.button.callback('👁 Xem kho', 'nav_admin_view_stock')],
@@ -565,6 +568,11 @@ function registerNavigation(bot) {
         ctx.answerCbQuery();
         return showAdminSettings(ctx);
     });
+    bot.action('nav_admin_ai', (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        return ctx.reply('🤖 Dùng /ai câu hỏi của bạn. AI hiện chỉ tư vấn, chưa tự thay đổi cấu hình.');
+    });
 
     bot.on('text', async (ctx, next) => {
         const text = ctx.message.text.trim();
@@ -579,6 +587,7 @@ function registerNavigation(bot) {
         };
         const adminActions = {
             '🔧 QUẢN TRỊ': () => showAdminMenu(ctx),
+            '🤖 Trợ lý AI': () => ctx.reply('🤖 Dùng /ai câu hỏi của bạn. AI hiện chỉ tư vấn, chưa tự thay đổi cấu hình.'),
             '📦 Quản lý sản phẩm': () => showAdminProductMenu(ctx),
             '🗂 Quản lý danh mục': () => showAdminCategoryMenu(ctx),
             '📥 Thêm tồn kho': () => beginAddStock(ctx),

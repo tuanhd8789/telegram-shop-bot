@@ -10,6 +10,7 @@ const userCommands = [
 
 const adminOnlyCommands = [
     { command: 'admin', description: '🔧 Mở bảng điều khiển admin' },
+    { command: 'ai', description: '🤖 Hỏi trợ lý AI (chỉ admin)' },
     { command: 'listproduct', description: '📦 Xem tất cả sản phẩm' },
     { command: 'addproduct', description: '➕ Thêm sản phẩm' },
     { command: 'editprice', description: '💵 Sửa giá sản phẩm' },

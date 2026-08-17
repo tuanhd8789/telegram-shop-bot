@@ -24,4 +24,6 @@ test('registers public commands globally and admin commands only for the admin c
     });
     assert.equal(calls[1].commands.some(({ command }) => command === 'admin'), true);
     assert.equal(calls[1].commands.some(({ command }) => command === 'addstock'), true);
+    assert.equal(calls[0].commands.some(({ command }) => command === 'ai'), false);
+    assert.equal(calls[1].commands.some(({ command }) => command === 'ai'), true);
 });

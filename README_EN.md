@@ -139,6 +139,7 @@ npm start
 | Command | Description |
 |---------|-------------|
 | `/admin` | 📊 Admin dashboard |
+| `/ai question` | 🤖 Ask the admin-only AI assistant |
 | **Products** | |
 | `/listproduct` | List all products |
 | `/addproduct catID \| name \| price` | Add new product |
@@ -167,6 +168,8 @@ npm start
 </details>
 
 The bot registers a chat-scoped admin command menu for `ADMIN_ID`; other accounts only see customer commands. The admin must open a private chat with the bot and send `/start` at least once so Telegram can resolve the chat.
+
+The `/ai` assistant is currently read-only and has no tool access to modify the bot. See the [admin AI guide](docs/admin-ai.en.md).
 
 ## 🧭 Persistent reply keyboard
 
