@@ -1,0 +1,10 @@
+services:
+  bot:
+    networks:
+      - default
+      - ai-provider
+
+networks:
+  ai-provider:
+    external: true
+    name: ${AI_PROVIDER_NETWORK}

@@ -20,6 +20,18 @@ AI_MAX_TOKENS=700
 
 Nếu provider không nằm trên Docker host, thay `AI_BASE_URL` bằng URL HTTPS nội bộ hoặc công khai phù hợp. Chỉ lưu API key trong `.env` của server và giữ file ở quyền `600`.
 
+Nếu provider chạy trong một Docker Compose project khác, nên nối trực tiếp qua network nội bộ thay vì mở port ra Internet:
+
+```dotenv
+AI_BASE_URL=http://provider-container:provider-port/v1
+AI_PROVIDER_NETWORK=provider_compose_network
+```
+
+```bash
+docker compose -f compose.yaml -f compose.ai-provider.yaml config --quiet
+docker compose -f compose.yaml -f compose.ai-provider.yaml up -d --build
+```
+
 ## Cách dùng hiện tại
 
 ```text

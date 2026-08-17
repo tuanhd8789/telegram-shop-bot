@@ -8,6 +8,7 @@ All notable changes to this project are documented here.
 
 - Admin-only, one-shot AI assistance through `/ai`, with bounded input/output, request timeout, and single-flight protection.
 - Admin menu entries, Docker host-gateway support for a host-based OpenAI-compatible provider, and bilingual operation guidance.
+- An optional Compose override for private container-to-container AI provider networking.
 
 ### Security
 
