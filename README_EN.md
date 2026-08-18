@@ -179,6 +179,8 @@ Category creation asks for a name, then an emoji or a public PNG/JPG URL. Telegr
 
 **Administration → Category management** provides create, rename, hide/show, and delete buttons. A hidden category disappears from the customer category menu but keeps its products and order history, and remains visible to administrators so it can be restored. Deletion requires confirmation and is allowed only for empty categories.
 
+**Administration → Settings → Edit information** accepts one line in the form `Shop name | @support_username`. The shop name and support contact take effect immediately, persist in SQLite across restarts, and never modify bank details or secrets. `/setshop` remains available and writes to the same storage.
+
 Categories configured with `custom_emoji_id` use the selected Telegram custom emoji on buttons and category headings. In inventory management, choose **View stock** or run `/viewstock ID`, then select an individual record to view, edit, or delete it. Sold stock is locked to preserve order history.
 
 Product buttons use **Price | Stock | App name** and read their individual icon from `products.custom_emoji_id`. See [`docs/product-custom-emojis.md`](docs/product-custom-emojis.md) for configuration and the current Autodesk mappings.

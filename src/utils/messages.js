@@ -2,11 +2,9 @@ const config = require('../config');
 const { formatPrice } = require('./keyboard');
 const { escapeHtml } = require('./telegramMarkup');
 
-const SHOP = config.SHOP_NAME;
-
 const messages = {
     welcome: (name) =>
-        `👋 Chào mừng <b>${name}</b> đến với <b>${SHOP}</b>!\n\n` +
+        `👋 Chào mừng <b>${escapeHtml(name)}</b> đến với <b>${escapeHtml(config.SHOP_NAME)}</b>!\n\n` +
         `🛒 Chuyên cung cấp tài khoản Premium giá rẻ\n\n` +
         `Bấm biểu tượng <b>bàn phím cạnh nút emoji</b> để mở menu mua hàng, nạp ví hoặc quản trị mà không cần gõ lệnh.`,
 
@@ -94,11 +92,12 @@ const messages = {
         );
     },
 
-    supportInfo:
-        `🆘 <b>HỖ TRỢ</b>\n\n` +
-        `Nếu bạn gặp vấn đề, liên hệ:\n` +
-        `👉 ${config.SUPPORT_CONTACT}\n\n` +
-        `⏰ Hỗ trợ 24/7`,
+    get supportInfo() {
+        return `🆘 <b>HỖ TRỢ</b>\n\n` +
+            `Nếu bạn gặp vấn đề, liên hệ:\n` +
+            `👉 ${escapeHtml(config.SUPPORT_CONTACT)}\n\n` +
+            `⏰ Hỗ trợ 24/7`;
+    },
 
     myId: (id) =>
         `🆔 <b>Telegram ID của bạn:</b>\n<code>${id}</code>`,

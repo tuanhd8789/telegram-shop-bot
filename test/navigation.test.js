@@ -9,6 +9,7 @@ const {
     adminMenuKeyboard,
     adminProductMenuKeyboard,
     adminCategoryMenuKeyboard,
+    adminSettingsKeyboard,
     stockItemsKeyboard,
     CUSTOMER_REPLY_LABELS,
     ADMIN_REPLY_LABELS,
@@ -66,6 +67,77 @@ test('admin reply keyboard keeps customer actions above admin actions', () => {
     const categoryLabels = labels(adminCategoryMenuKeyboard());
     for (const label of ['➕ Tạo danh mục', '✏️ Đổi tên danh mục', '🙈 Ẩn/hiện danh mục', '🗑 Xóa danh mục']) {
         assert.ok(categoryLabels.includes(label));
+    }
+
+    assert.deepEqual(labels(adminSettingsKeyboard()), ['✏️ Sửa thông tin', '↩️ Quản trị']);
+});
+
+test('admin settings button updates durable shop information and keeps invalid input editable', async () => {
+    const registrations = [];
+    let textHandler;
+    const bot = {
+        action(trigger, handler) { registrations.push({ trigger, handler }); },
+        on(type, handler) { if (type === 'text') textHandler = handler; },
+        telegram: { sendMessage: async () => {} },
+    };
+    registerNavigation(bot);
+
+    const editAction = registrations.find(({ trigger }) => trigger === 'nav_admin_edit_shop_info');
+    assert.ok(editAction, 'missing shop info edit action');
+
+    const original = {
+        adminId: config.ADMIN_ID,
+        shopName: config.SHOP_NAME,
+        supportContact: config.SUPPORT_CONTACT,
+    };
+    const session = {};
+    const replies = [];
+    config.ADMIN_ID = 5487392216;
+    db.exec('BEGIN');
+    try {
+        await editAction.handler({
+            from: { id: config.ADMIN_ID },
+            session,
+            answerCbQuery() {},
+            replyWithHTML: (...args) => { replies.push(args); },
+        });
+        assert.deepEqual(session.navigation, { action: 'edit_shop_info' });
+        assert.match(replies[0][0], /Tên shop \| @tai_khoan_ho_tro/);
+
+        await textHandler({
+            from: { id: config.ADMIN_ID },
+            session,
+            message: { text: 'invalid input' },
+            reply: (...args) => { replies.push(args); },
+        }, () => assert.fail('invalid settings input reached next middleware'));
+        assert.deepEqual(session.navigation, { action: 'edit_shop_info' });
+        assert.equal(config.SHOP_NAME, original.shopName);
+
+        await textHandler({
+            from: { id: config.ADMIN_ID },
+            session,
+            message: { text: 'Shop & Store | @support_team' },
+            reply: (...args) => { replies.push(args); },
+            replyWithHTML: (...args) => { replies.push(args); },
+        }, () => assert.fail('valid settings input reached next middleware'));
+        assert.equal(session.navigation, undefined);
+        assert.equal(config.SHOP_NAME, 'Shop & Store');
+        assert.equal(config.SUPPORT_CONTACT, '@support_team');
+        assert.equal(db.prepare("SELECT value FROM app_settings WHERE key = 'shop_name'").get().value, 'Shop & Store');
+        assert.match(replies.at(-1)[0], /Shop &amp; Store/);
+
+        const nonAdmin = { answers: [] };
+        await editAction.handler({
+            from: { id: 12345 },
+            session: {},
+            answerCbQuery: (...args) => { nonAdmin.answers.push(args); },
+        });
+        assert.equal(nonAdmin.answers[0][0], '⛔');
+    } finally {
+        db.exec('ROLLBACK');
+        config.ADMIN_ID = original.adminId;
+        config.SHOP_NAME = original.shopName;
+        config.SUPPORT_CONTACT = original.supportContact;
     }
 });
 

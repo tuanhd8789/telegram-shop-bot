@@ -38,7 +38,7 @@ Nội dung hội thoại không được lưu. Chế độ bật/tắt chat vẫ
 - Broadcast văn bản sau khi xem trước số người nhận và nội dung.
 - Đồng bộ Google Sheet đã cấu hình.
 
-Thông tin ngân hàng đầy đủ, thay đổi `.env`, secret, nội dung stock, dữ liệu định danh khách hàng, shell, SQL tùy ý và deploy luôn nằm ngoài allowlist. Tên shop/hỗ trợ hiện lấy từ biến môi trường nên AI chỉ được đọc; thay đổi chúng vẫn dùng quy trình cấu hình/deploy của người vận hành.
+Thông tin ngân hàng đầy đủ, thay đổi `.env`, secret, nội dung stock, dữ liệu định danh khách hàng, shell, SQL tùy ý và deploy luôn nằm ngoài allowlist. AI chỉ được đọc tên shop/hỗ trợ. Admin thay đổi hai giá trị này qua **Quản trị → Cài đặt → Sửa thông tin**; giá trị lưu trong SQLite sẽ ghi đè mặc định từ biến môi trường sau khi bot khởi động lại.
 
 ## Ví dụ sử dụng
 

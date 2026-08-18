@@ -8,6 +8,7 @@ const { createSePayWebhookHandler } = require('./sepayWebhook');
 const { createSePayPaymentService } = require('./services/sepayPaymentService');
 const { createDeliveryQueue } = require('./services/deliveryQueue');
 const db = require('./database');
+require('./services/settingsService').load();
 const { createSessionMiddleware } = require('./session');
 const { createAiService } = require('./services/aiService');
 const { createAiChatModeStore } = require('./services/aiChatModeStore');

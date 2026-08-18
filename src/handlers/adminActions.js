@@ -6,9 +6,8 @@ const { deliverOrder } = require('./paymentConfirm');
 const { formatPrice } = require('../utils/keyboard');
 const { customEmojiHtml, escapeHtml } = require('../utils/telegramMarkup');
 const { showAdminStock, showProductStock } = require('./navigation');
+const settingsService = require('../services/settingsService');
 const { Markup } = require('telegraf');
-const fs = require('fs');
-const path = require('path');
 
 // Admin state per user (for multi-step flows)
 const adminState = {};
@@ -50,7 +49,7 @@ module.exports = (bot) => {
     bot.command('admin', adminOnly, (ctx) => {
         const stats = orderService.getStats();
         ctx.replyWithHTML(
-            `🔧 <b>ADMIN PANEL — ${config.SHOP_NAME}</b>\n\n` +
+            `🔧 <b>ADMIN PANEL — ${escapeHtml(config.SHOP_NAME)}</b>\n\n` +
             `📊 <b>Thống kê nhanh:</b>\n` +
             `├ 👥 Users: ${stats.totalUsers}\n` +
             `├ 📦 Đơn hoàn thành: ${stats.totalOrders}\n` +
@@ -437,27 +436,24 @@ module.exports = (bot) => {
         if (!argsText) {
             return ctx.replyWithHTML(
                 `🏪 <b>THÔNG TIN SHOP</b>\n\n` +
-                `├ Tên: <b>${config.SHOP_NAME}</b>\n` +
-                `└ Hỗ trợ: ${config.SUPPORT_CONTACT}\n\n` +
+                `├ Tên: <b>${escapeHtml(config.SHOP_NAME)}</b>\n` +
+                `└ Hỗ trợ: ${escapeHtml(config.SUPPORT_CONTACT)}\n\n` +
                 `✏️ Để sửa:\n` +
                 `<code>/setshop tên shop | @contact_hỗ_trợ</code>`
             );
         }
 
-        const parts = argsText.split('|').map((s) => s.trim());
-        const shopName = parts[0];
-        const support = parts[1] || config.SUPPORT_CONTACT;
-
-        const envPath = path.join(__dirname, '..', '..', '.env');
-        let envContent = fs.readFileSync(envPath, 'utf8');
-        envContent = envContent.replace(/SHOP_NAME=.*/, `SHOP_NAME=${shopName}`);
-        envContent = envContent.replace(/SUPPORT_CONTACT=.*/, `SUPPORT_CONTACT=${support}`);
-        fs.writeFileSync(envPath, envContent);
-
-        config.SHOP_NAME = shopName;
-        config.SUPPORT_CONTACT = support;
-
-        ctx.replyWithHTML(`✅ Đã cập nhật:\n├ Shop: <b>${shopName}</b>\n└ Hỗ trợ: ${support}`);
+        try {
+            const updated = settingsService.updateFromInput(argsText);
+            return ctx.replyWithHTML(
+                `✅ Đã cập nhật:\n` +
+                `├ Shop: <b>${escapeHtml(updated.shopName)}</b>\n` +
+                `└ Hỗ trợ: ${escapeHtml(updated.supportContact)}`
+            );
+        } catch (error) {
+            if (!(error instanceof settingsService.SettingsError)) throw error;
+            return ctx.reply(`❌ ${error.message}`);
+        }
     });
 
     // ═══════════════════════════════════════
