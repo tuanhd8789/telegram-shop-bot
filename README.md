@@ -169,7 +169,7 @@ npm start
 
 Bot đăng ký menu lệnh quản trị riêng cho chat có `ADMIN_ID`; tài khoản khác chỉ thấy các lệnh khách hàng. Admin cần mở chat riêng với bot và gửi `/start` ít nhất một lần để Telegram nhận diện chat.
 
-Trợ lý `/ai` hiện là chế độ chỉ đọc, không có tool tự sửa bot. Admin có thể bấm **Chat với AI** để chuyển mọi tin nhắn text sang AI cho đến khi bấm **Dừng chat với AI**. Xem [hướng dẫn AI cho admin](docs/admin-ai.md).
+Trợ lý `/ai` có tool đọc dữ liệu đã lọc và một allowlist hành động quản trị. Mọi thao tác ghi đều hiện preview **Xác nhận/Hủy**, có hạn dùng, audit log và snapshot trước khi đổi SQLite; stock secret, dữ liệu khách hàng, shell, SQL tùy ý và deploy không được cấp cho AI. Admin có thể bấm **Chat với AI** để chuyển mọi tin nhắn text sang AI cho đến khi bấm **Dừng chat với AI**. Xem [hướng dẫn AI cho admin](docs/admin-ai.md).
 
 ## 🧭 Menu bàn phím không cần gõ lệnh
 

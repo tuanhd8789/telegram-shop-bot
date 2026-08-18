@@ -13,10 +13,10 @@
 - 2026-08-17 — Product-generic successful delivery messages with plain admin-authored content and Vietnamese `/hotro` guidance. Implemented in [v1.6.1](CHANGELOG.md#161---2026-08-17).
 - 2026-08-17 — Admin-only, read-only AI assistant with a validated OpenAI-compatible provider configuration. Implemented in [v1.7.0](CHANGELOG.md#170---2026-08-17).
 - 2026-08-18 — Persistent admin AI chat mode with explicit start/stop controls and a simplified customer keyboard. Implemented in [v1.8.0](CHANGELOG.md#180---2026-08-18).
+- 2026-08-18 — Controlled AI administration with function calling, privacy-filtered reads, preview/confirmation, audit, backup, protected secret handoffs, and replay protection. Implemented in [v1.9.0](CHANGELOG.md#190---2026-08-18).
 
 ## Next
 
 - Add role-based administration and an auditable admin-action log.
 - Add restore drills and encrypted off-host backup automation for the selected hosting provider.
 - Add Vietnamese/English message catalogs editable by shop administrators.
-- 2026-08-17 request — Add controlled AI self-configuration using a safe-action allowlist, preview and explicit admin confirmation, audit logs, backup, health check, and automatic rollback.

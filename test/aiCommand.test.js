@@ -15,6 +15,7 @@ function context(userId, text) {
             session: {},
             message: { text },
             reply: async (message) => { replies.push(message); },
+            replyWithHTML: async (message) => { replies.push(message); },
             sendChatAction: async () => {},
         },
         replies,
@@ -92,7 +93,7 @@ test('never lets a non-admin enable persistent AI chat mode', async () => {
     assert.equal(active, false);
 });
 
-test('lets the admin ask a one-shot read-only question', async () => {
+test('lets the admin ask a one-shot question', async () => {
     const prompts = [];
     const handler = createAiCommandHandler({
         adminId: 123,
@@ -117,10 +118,141 @@ test('returns safe usage and provider failure messages', async () => {
     });
     const usage = context(123, '/ai');
     await handler(usage.ctx);
-    assert.match(usage.replies[0], /chưa có quyền đọc DB/);
+    assert.match(usage.replies[0], /tool đọc dữ liệu/);
 
     const failed = context(123, '/ai test');
     await handler(failed.ctx);
     assert.match(failed.replies[0], /AI tạm thời không trả lời được/);
     assert.doesNotMatch(failed.replies[0], /secret provider detail/);
+});
+
+test('runs read tools automatically and returns the grounded answer', async () => {
+    const calls = [];
+    const aiService = {
+        async complete(messages) {
+            calls.push(messages);
+            if (calls.length === 1) {
+                return {
+                    role: 'assistant',
+                    content: '',
+                    tool_calls: [{ id: 'read-1', type: 'function', function: { name: 'get_shop_overview', arguments: '{}' } }],
+                };
+            }
+            assert.match(messages.at(-1).content, /"users":7/);
+            return { role: 'assistant', content: '**Shop ổn định**', tool_calls: [] };
+        },
+    };
+    const actionGateway = {
+        getTools: () => [],
+        isReadTool: (name) => name === 'get_shop_overview',
+        isWriteTool: () => false,
+        runRead: () => ({ users: 7 }),
+    };
+    const controller = createAiController({
+        adminId: 123,
+        enabled: true,
+        aiService,
+        actionGateway,
+        chatModeStore: { isActive: () => false, setActive() {} },
+    });
+    const request = context(123, '/ai tình trạng shop');
+
+    await controller.command(request.ctx);
+
+    assert.equal(calls.length, 2);
+    assert.equal(request.replies[0], '<b>Shop ổn định</b>');
+});
+
+test('shows a confirmation button instead of executing a write tool', async () => {
+    let prepared = 0;
+    const actionGateway = {
+        getTools: () => [],
+        isReadTool: () => false,
+        isWriteTool: (name) => name === 'update_product',
+        prepare(name, args, adminId) {
+            prepared += 1;
+            assert.equal(name, 'update_product');
+            assert.deepEqual(args, { product_id: 9, price: 700000 });
+            assert.equal(adminId, 123);
+            return { id: '0123456789abcdef', preview: 'Đổi giá sản phẩm #9.' };
+        },
+    };
+    const controller = createAiController({
+        adminId: 123,
+        enabled: true,
+        aiService: {
+            complete: async () => ({
+                role: 'assistant', content: '',
+                tool_calls: [{ id: 'write-1', type: 'function', function: {
+                    name: 'update_product', arguments: '{"product_id":9,"price":700000}',
+                } }],
+            }),
+        },
+        actionGateway,
+        chatModeStore: { isActive: () => false, setActive() {} },
+    });
+    const request = context(123, '/ai đổi giá');
+
+    await controller.command(request.ctx);
+
+    assert.equal(prepared, 1);
+    assert.match(request.replies[0], /Chưa có thay đổi nào/);
+    assert.match(request.replies[0], /0123456789abcdef/);
+});
+
+test('confirmation callbacks execute once and protected handoffs leave AI mode', async () => {
+    let active = true;
+    let confirms = 0;
+    const actionGateway = {
+        confirm: async (id, adminId) => {
+            confirms += 1;
+            assert.equal(id, '0123456789abcdef');
+            assert.equal(adminId, 123);
+            return {
+                message: 'Mở nhập kho.',
+                backupName: null,
+                interaction: { type: 'add_stock', productId: 9 },
+            };
+        },
+    };
+    const controller = createAiController({
+        adminId: 123,
+        enabled: true,
+        aiService: {},
+        actionGateway,
+        chatModeStore: {
+            isActive: () => active,
+            setActive: (_id, value) => { active = value; },
+        },
+    });
+    const request = context(123, 'callback');
+    request.ctx.match = ['full', '0123456789abcdef'];
+    request.ctx.answerCbQuery = async () => {};
+
+    await controller.confirmAction(request.ctx);
+
+    assert.equal(confirms, 1);
+    assert.equal(active, false);
+    assert.deepEqual(request.ctx.session.navigation, { action: 'stock_data', productId: 9 });
+    assert.match(request.replies[0], /Mở nhập kho/);
+});
+
+test('confirmation callbacks reject non-admin users before gateway execution', async () => {
+    let confirms = 0;
+    const controller = createAiController({
+        adminId: 123,
+        enabled: true,
+        aiService: {},
+        actionGateway: { confirm: async () => { confirms += 1; } },
+        chatModeStore: { isActive: () => false, setActive() {} },
+    });
+    const request = context(456, 'callback');
+    request.ctx.match = ['full', '0123456789abcdef'];
+    const alerts = [];
+    request.ctx.answerCbQuery = async (...args) => { alerts.push(args); };
+
+    await controller.confirmAction(request.ctx);
+
+    assert.equal(confirms, 0);
+    assert.match(alerts[0][0], /không có quyền/);
 });

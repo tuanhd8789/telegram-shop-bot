@@ -21,7 +21,7 @@ test('normalizes OpenAI-compatible base URLs', () => {
     );
 });
 
-test('sends a bounded read-only chat completion request', async () => {
+test('sends a bounded chat completion request without tools for compatibility', async () => {
     let request;
     const service = createAiService({
         baseUrl: 'https://api.example.com/v1',
@@ -44,9 +44,42 @@ test('sends a bounded read-only chat completion request', async () => {
     assert.equal(body.model, 'test-model');
     assert.equal(body.max_tokens, 321);
     assert.equal(body.messages[0].content, SYSTEM_PROMPT);
-    assert.match(body.messages[0].content, /không có công cụ/);
+    assert.match(body.messages[0].content, /Xác nhận/);
     assert.deepEqual(body.messages[1], { role: 'user', content: 'Tình trạng bot?' });
     assert.equal(body.tools, undefined);
+});
+
+test('sends tool schemas and normalizes OpenAI-compatible tool calls', async () => {
+    let body;
+    const service = createAiService({
+        baseUrl: 'https://api.example.com/v1',
+        apiKey: 'test-secret',
+        model: 'test-model',
+        fetchImpl: async (_url, options) => {
+            body = JSON.parse(options.body);
+            return {
+                ok: true,
+                json: async () => ({
+                    choices: [{ message: {
+                        content: '',
+                        tool_calls: [{
+                            id: 'call-1',
+                            type: 'function',
+                            function: { name: 'get_shop_overview', arguments: '{}' },
+                        }],
+                    } }],
+                }),
+            };
+        },
+    });
+    const tools = [{ type: 'function', function: { name: 'get_shop_overview', parameters: { type: 'object' } } }];
+
+    const message = await service.complete([{ role: 'user', content: 'Xem shop' }], tools);
+
+    assert.deepEqual(body.tools, tools);
+    assert.equal(body.tool_choice, 'auto');
+    assert.equal(message.tool_calls[0].function.name, 'get_shop_overview');
+    assert.equal(message.tool_calls[0].function.arguments, '{}');
 });
 
 test('does not expose provider response bodies in errors', async () => {

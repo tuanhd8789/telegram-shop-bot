@@ -123,8 +123,25 @@ db.exec(`
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
+  CREATE TABLE IF NOT EXISTS ai_action_requests (
+    id TEXT PRIMARY KEY,
+    admin_id INTEGER NOT NULL,
+    tool_name TEXT NOT NULL,
+    arguments TEXT NOT NULL,
+    preview TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending'
+      CHECK (status IN ('pending', 'executing', 'completed', 'cancelled', 'expired', 'failed')),
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL,
+    decided_at INTEGER,
+    backup_name TEXT,
+    result TEXT
+  );
+
   CREATE INDEX IF NOT EXISTS idx_telegram_jobs_ready
     ON telegram_jobs(status, next_attempt_at, id);
+  CREATE INDEX IF NOT EXISTS idx_ai_action_requests_admin_status
+    ON ai_action_requests(admin_id, status, created_at);
 `);
 
 // Safe migrations for existing databases
