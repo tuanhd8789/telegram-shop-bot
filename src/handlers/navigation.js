@@ -4,6 +4,7 @@ const db = require('../database');
 const userService = require('../services/userService');
 const productService = require('../services/productService');
 const orderService = require('../services/orderService');
+const settingsService = require('../services/settingsService');
 const messages = require('../utils/messages');
 const { formatPrice, productListKeyboard } = require('../utils/keyboard');
 const { callbackWithCustomEmoji, customEmojiHtml, escapeHtml } = require('../utils/telegramMarkup');
@@ -124,6 +125,13 @@ function adminCategoryMenuKeyboard() {
         [Markup.button.callback('🙈 Ẩn/hiện danh mục', 'nav_admin_toggle_category')],
         [Markup.button.callback('🗑 Xóa danh mục', 'nav_admin_delete_category')],
         [Markup.button.callback('🗂 Xem danh mục', 'nav_admin_categories')],
+        [Markup.button.callback('↩️ Quản trị', 'nav_admin')],
+    ]);
+}
+
+function adminSettingsKeyboard() {
+    return Markup.inlineKeyboard([
+        [Markup.button.callback('✏️ Sửa thông tin', 'nav_admin_edit_shop_info')],
         [Markup.button.callback('↩️ Quản trị', 'nav_admin')],
     ]);
 }
@@ -318,7 +326,11 @@ function showAdminUsers(ctx) {
 
 function showAdminSettings(ctx) {
     return ctx.replyWithHTML(
-        `⚙️ <b>CÀI ĐẶT</b>\n\n🏪 Shop: <b>${config.SHOP_NAME}</b>\n🏦 Ngân hàng: <b>${config.BANK.NAME}</b>\n🆘 Hỗ trợ: ${config.SUPPORT_CONTACT}`
+        `⚙️ <b>CÀI ĐẶT</b>\n\n` +
+        `🏪 Shop: <b>${escapeHtml(config.SHOP_NAME)}</b>\n` +
+        `🏦 Ngân hàng: <b>${escapeHtml(config.BANK.NAME)}</b>\n` +
+        `🆘 Hỗ trợ: ${escapeHtml(config.SUPPORT_CONTACT)}`,
+        adminSettingsKeyboard()
     );
 }
 
@@ -672,6 +684,18 @@ function registerNavigation(bot, { aiController } = {}) {
         ctx.answerCbQuery();
         return showAdminSettings(ctx);
     });
+    bot.action('nav_admin_edit_shop_info', (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        ctx.session.navigation = { action: 'edit_shop_info' };
+        return ctx.replyWithHTML(
+            `✏️ <b>SỬA THÔNG TIN SHOP</b>\n\n` +
+            `Hiện tại: <b>${escapeHtml(config.SHOP_NAME)}</b> | ${escapeHtml(config.SUPPORT_CONTACT)}\n\n` +
+            `Gửi thông tin mới theo đúng mẫu một dòng:\n` +
+            `<code>Tên shop | @tai_khoan_ho_tro</code>\n\n` +
+            `Nút này không sửa thông tin ngân hàng hoặc secret. Gõ /cancel để hủy.`
+        );
+    });
     bot.action('nav_admin_ai_start', (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
         ctx.answerCbQuery();
@@ -765,6 +789,21 @@ function registerNavigation(bot, { aiController } = {}) {
                 Markup.inlineKeyboard([[Markup.button.callback('↩️ Quản lý danh mục', 'nav_admin_category_menu')]])
             );
         }
+        if (state.action === 'edit_shop_info') {
+            try {
+                const updated = settingsService.updateFromInput(text);
+                delete ctx.session.navigation;
+                return ctx.replyWithHTML(
+                    `✅ Đã cập nhật thông tin shop.\n\n` +
+                    `🏪 Shop: <b>${escapeHtml(updated.shopName)}</b>\n` +
+                    `🆘 Hỗ trợ: ${escapeHtml(updated.supportContact)}`,
+                    adminSettingsKeyboard()
+                );
+            } catch (error) {
+                if (!(error instanceof settingsService.SettingsError)) throw error;
+                return ctx.reply(`❌ ${error.message}\nGõ /cancel để hủy hoặc gửi lại.`);
+            }
+        }
         if (state.action === 'product_name') {
             ctx.session.navigation = { ...state, action: 'product_price', name: text };
             return ctx.reply('💵 Gửi giá bán bằng số, ví dụ: 300000.');
@@ -839,6 +878,7 @@ module.exports = {
     adminMenuKeyboard,
     adminProductMenuKeyboard,
     adminCategoryMenuKeyboard,
+    adminSettingsKeyboard,
     showAdminStock,
     showProductStock,
     showStockItem,

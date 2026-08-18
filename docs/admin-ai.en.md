@@ -24,7 +24,7 @@ Immediate reads cover shop statistics, categories, products, stock counts/IDs, p
 
 Confirmed actions cover category and product CRUD with business constraints, unsold-stock deletion, protected stock add/edit handoffs, pending-order cancellation, confirmed order delivery, broadcast, and configured Google Sheet synchronization.
 
-Full bank details, `.env` changes, secrets, stock content, customer identity, arbitrary SQL/shell, and deployment remain forbidden. Shop name/support are environment-backed and read-only to AI; operators must use the normal configuration/deployment workflow to change them.
+Full bank details, `.env` changes, secrets, stock content, customer identity, arbitrary SQL/shell, and deployment remain forbidden. Shop name/support remain read-only to AI. An administrator changes them through **Administration → Settings → Edit information**; the SQLite values override environment defaults after restart.
 
 ## Examples
 

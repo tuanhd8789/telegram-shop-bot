@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## [1.11.0] - 2026-08-18
+
+### Added
+
+- An admin-only **Administration → Settings → Edit information** flow for updating the shop name and Telegram support username without editing deployment files.
+- Durable `app_settings` storage whose saved values override the environment defaults after a restart.
+
+### Changed
+
+- Apply shop-information changes immediately to customer welcome/support messages and route the legacy `/setshop` command through the same durable service.
+
+### Security
+
+- Validate shop names and Telegram usernames, escape editable values in HTML messages, and keep bank details and secrets outside this editing flow.
+
 ## [1.10.0] - 2026-08-18
 
 ### Added
