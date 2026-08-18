@@ -99,8 +99,10 @@ function categoriesKeyboard(categories = productService.getCategories()) {
             return button;
         }));
     }
-    rows.push([Markup.button.callback('🔄 Làm mới', 'nav_categories')]);
-    rows.push([Markup.button.callback('↩️ Quay lại', 'nav_menu')]);
+    rows.push([
+        Markup.button.callback('🔄 Làm mới', 'nav_categories'),
+        Markup.button.callback('↩️ Quay lại', 'nav_menu'),
+    ]);
     return Markup.inlineKeyboard(rows);
 }
 
