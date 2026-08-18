@@ -79,14 +79,15 @@ test('category availability follows active local and sheet stock', () => {
     }
 });
 
-test('customer reply keyboard is persistent and does not expose admin actions', () => {
+test('customer reply keyboard collapses after use and does not expose admin actions', () => {
     const keyboard = replyMenuKeyboard(false);
     const customerLabels = labels(keyboard);
     assert.ok(customerLabels.includes('🛍 Tất cả sản phẩm'));
     assert.ok(customerLabels.includes('💰 Nạp tiền vào ví'));
     assert.equal(customerLabels.includes('🔧 QUẢN TRỊ'), false);
     assert.equal(customerLabels.includes('👤 KHÁCH HÀNG'), false);
-    assert.equal(keyboard.reply_markup.is_persistent, true);
+    assert.equal(keyboard.reply_markup.is_persistent, undefined);
+    assert.equal(keyboard.reply_markup.one_time_keyboard, true);
     assert.equal(keyboard.reply_markup.resize_keyboard, true);
     assert.deepEqual(customerLabels, CUSTOMER_REPLY_LABELS);
 });

@@ -171,9 +171,9 @@ Bot đăng ký menu lệnh quản trị riêng cho chat có `ADMIN_ID`; tài kho
 
 Trợ lý `/ai` có tool đọc dữ liệu đã lọc và một allowlist hành động quản trị. Mọi thao tác ghi đều hiện preview **Xác nhận/Hủy**, có hạn dùng, audit log và snapshot trước khi đổi SQLite; stock secret, dữ liệu khách hàng, shell, SQL tùy ý và deploy không được cấp cho AI. Admin có thể bấm **Chat với AI** để chuyển mọi tin nhắn text sang AI cho đến khi bấm **Dừng chat với AI**. Xem [hướng dẫn AI cho admin](docs/admin-ai.md).
 
-## 🧭 Menu bàn phím không cần gõ lệnh
+## 🧭 Menu bàn phím tự thu
 
-Gửi `/start` hoặc `/menu` một lần để bot cài bàn phím cố định. Sau đó bấm biểu tượng **bàn phím bốn ô cạnh nút emoji** để ẩn/hiện menu:
+Gửi `/start` hoặc `/menu` một lần để cài bàn phím theo vai trò. Menu tự thu sau khi chọn chức năng để không giành lại vùng nhập liệu khi đang dùng emoji; bấm biểu tượng **bàn phím bốn ô** để mở lại khi cần:
 
 - Khách hàng thấy thẳng các nút sản phẩm, danh mục, nạp ví, đơn hàng, tài khoản và hỗ trợ; không còn nút tiêu đề **KHÁCH HÀNG**.
 - Chỉ đúng `ADMIN_ID` mới có thêm phần **QUẢN TRỊ** ở dưới, bao gồm hai nút bật/tắt chat AI và các nghiệp vụ quản trị khác.
