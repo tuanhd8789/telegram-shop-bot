@@ -13,6 +13,7 @@ const topupCommand = require('../commands/nap');
 const { START_AI_CHAT_LABEL, STOP_AI_CHAT_LABEL } = require('../commands/ai');
 
 const STOCK_PAGE_SIZE = 10;
+const CATEGORY_GRID_COLUMNS = 3;
 
 function isAdmin(ctx) {
     return ctx.from.id === config.ADMIN_ID;
@@ -78,16 +79,19 @@ function showMainMenu(ctx, text) {
     );
 }
 
-function categoriesKeyboard() {
-    const rows = productService.getCategories().map((category) => [
-        callbackWithCustomEmoji(
-            category.custom_emoji_id ? category.name : `${category.emoji || '📂'} ${category.name}`,
-            `nav_category_${category.id}`,
-            category.custom_emoji_id
-        ),
-    ]);
-    rows.push([Markup.button.callback('📦 Tất cả sản phẩm', 'nav_products')]);
-    rows.push([Markup.button.callback('↩️ Menu', 'nav_menu')]);
+function categoriesKeyboard(categories = productService.getCategories()) {
+    const rows = [];
+    for (let index = 0; index < categories.length; index += CATEGORY_GRID_COLUMNS) {
+        rows.push(categories.slice(index, index + CATEGORY_GRID_COLUMNS).map((category) =>
+            callbackWithCustomEmoji(
+                category.custom_emoji_id ? category.name : `${category.emoji || '📂'} ${category.name}`,
+                `nav_category_${category.id}`,
+                category.custom_emoji_id
+            )
+        ));
+    }
+    rows.push([Markup.button.callback('🔄 Làm mới', 'nav_categories')]);
+    rows.push([Markup.button.callback('↩️ Quay lại', 'nav_menu')]);
     return Markup.inlineKeyboard(rows);
 }
 
@@ -876,6 +880,7 @@ module.exports = {
     showMainMenu,
     replyMenuKeyboard,
     adminMenuKeyboard,
+    categoriesKeyboard,
     adminProductMenuKeyboard,
     adminCategoryMenuKeyboard,
     adminSettingsKeyboard,
