@@ -24,10 +24,11 @@ function renderAiHtml(value) {
 function normalizeProviderArguments(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
     const normalized = { ...value };
-    // Some OpenAI-compatible reasoning models add this harmless metadata even
-    // when additionalProperties is false. Strip only this known field; the
+    // Some OpenAI-compatible reasoning models add harmless metadata even when
+    // additionalProperties is false. Strip only these known fields; the
     // gateway still rejects every other argument outside the tool allowlist.
     if (typeof normalized.reason === 'string') delete normalized.reason;
+    if (Object.hasOwn(normalized, '_')) delete normalized._;
     return normalized;
 }
 

@@ -137,7 +137,7 @@ test('runs read tools automatically and returns the grounded answer', async () =
                     role: 'assistant',
                     content: '',
                     tool_calls: [{ id: 'read-1', type: 'function', function: {
-                        name: 'get_shop_overview', arguments: '{"reason":"Kiểm tra tổng quan"}',
+                        name: 'get_shop_overview', arguments: '{"_":"provider metadata","reason":"Kiểm tra tổng quan"}',
                     } }],
                 };
             }
