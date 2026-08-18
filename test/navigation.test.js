@@ -23,22 +23,37 @@ test('customer reply keyboard is persistent and does not expose admin actions', 
     assert.ok(customerLabels.includes('🛍 Tất cả sản phẩm'));
     assert.ok(customerLabels.includes('💰 Nạp tiền vào ví'));
     assert.equal(customerLabels.includes('🔧 QUẢN TRỊ'), false);
+    assert.equal(customerLabels.includes('👤 KHÁCH HÀNG'), false);
     assert.equal(keyboard.reply_markup.is_persistent, true);
     assert.equal(keyboard.reply_markup.resize_keyboard, true);
     assert.deepEqual(customerLabels, CUSTOMER_REPLY_LABELS);
 });
 
 test('admin reply keyboard keeps customer actions above admin actions', () => {
-    const adminLabels = labels(replyMenuKeyboard(true));
+    const adminKeyboard = replyMenuKeyboard(true);
+    const adminLabels = labels(adminKeyboard);
     assert.deepEqual(adminLabels.slice(0, CUSTOMER_REPLY_LABELS.length), CUSTOMER_REPLY_LABELS);
     assert.deepEqual(adminLabels.slice(CUSTOMER_REPLY_LABELS.length), ADMIN_REPLY_LABELS);
+    const aiReplyRow = adminKeyboard.reply_markup.keyboard.find((row) =>
+        row.some((button) => button.text === '🤖 Chat với AI')
+    );
+    assert.deepEqual(aiReplyRow.map((button) => button.text), [
+        '🤖 Chat với AI',
+        '🛑 Dừng chat với AI',
+    ]);
 
-    const inlineAdminLabels = labels(adminMenuKeyboard());
+    const inlineAdminKeyboard = adminMenuKeyboard();
+    const inlineAdminLabels = labels(inlineAdminKeyboard);
     assert.ok(inlineAdminLabels.includes('➕ Tạo danh mục'));
     assert.ok(inlineAdminLabels.includes('➕ Tạo sản phẩm'));
     assert.ok(inlineAdminLabels.includes('📥 Thêm kho'));
     assert.ok(inlineAdminLabels.includes('📣 Gửi thông báo'));
-    assert.ok(inlineAdminLabels.includes('🤖 Trợ lý AI'));
+    assert.ok(inlineAdminLabels.includes('🤖 Chat với AI'));
+    assert.ok(inlineAdminLabels.includes('🛑 Dừng chat với AI'));
+    assert.deepEqual(
+        inlineAdminKeyboard.reply_markup.inline_keyboard[0].map((button) => button.text),
+        ['🤖 Chat với AI', '🛑 Dừng chat với AI']
+    );
 
     const productLabels = labels(adminProductMenuKeyboard());
     for (const label of ['📦 Tất cả sản phẩm', '➕ Tạo sản phẩm', '💵 Sửa giá', '✏️ Sửa tên', '🔁 Bật/tắt', '🗑 Xóa']) {

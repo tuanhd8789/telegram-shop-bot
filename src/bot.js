@@ -10,6 +10,8 @@ const { createDeliveryQueue } = require('./services/deliveryQueue');
 const db = require('./database');
 const { createSessionMiddleware } = require('./session');
 const { createAiService } = require('./services/aiService');
+const { createAiChatModeStore } = require('./services/aiChatModeStore');
+const { createAiController } = require('./commands/ai');
 
 const configErrors = validateConfig(config);
 if (configErrors.length > 0) {
@@ -25,6 +27,12 @@ const aiService = config.AI.ENABLED ? createAiService({
     timeoutMs: config.AI.TIMEOUT_MS,
     maxTokens: config.AI.MAX_TOKENS,
 }) : null;
+const aiController = createAiController({
+    adminId: config.ADMIN_ID,
+    enabled: config.AI.ENABLED,
+    aiService,
+    chatModeStore: createAiChatModeStore(db),
+});
 const bankAccounts = [config.BANK.ACCOUNT, config.BANK2?.ACCOUNT].filter(Boolean);
 const sepayPaymentService = createSePayPaymentService({
     db,
@@ -43,6 +51,7 @@ const sepayHandler = createSePayWebhookHandler({
 
 // Multi-step customer/admin actions always start with a writable session.
 bot.use(createSessionMiddleware());
+bot.use(aiController.textMiddleware);
 
 // Error handler
 bot.catch((err, ctx) => {
@@ -62,12 +71,8 @@ require('./commands/nap')(bot);
 require('./commands/checkpay')(bot);
 require('./commands/support')(bot);
 require('./commands/myid')(bot);
-require('./commands/ai')(bot, {
-    adminId: config.ADMIN_ID,
-    enabled: config.AI.ENABLED,
-    aiService,
-});
-require('./handlers/navigation').registerNavigation(bot);
+require('./commands/ai')(bot, aiController);
+require('./handlers/navigation').registerNavigation(bot, { aiController });
 
 // Register handlers
 require('./handlers/productSelect')(bot);

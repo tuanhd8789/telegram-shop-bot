@@ -9,6 +9,7 @@ const { formatPrice, productListKeyboard } = require('../utils/keyboard');
 const { callbackWithCustomEmoji, customEmojiHtml, escapeHtml } = require('../utils/telegramMarkup');
 const productCommand = require('../commands/product');
 const topupCommand = require('../commands/nap');
+const { START_AI_CHAT_LABEL, STOP_AI_CHAT_LABEL } = require('../commands/ai');
 
 const STOCK_PAGE_SIZE = 10;
 
@@ -17,7 +18,6 @@ function isAdmin(ctx) {
 }
 
 const CUSTOMER_REPLY_LABELS = [
-    '👤 KHÁCH HÀNG',
     '🛍 Tất cả sản phẩm',
     '🗂 Danh mục',
     '💰 Nạp tiền vào ví',
@@ -28,7 +28,8 @@ const CUSTOMER_REPLY_LABELS = [
 
 const ADMIN_REPLY_LABELS = [
     '🔧 QUẢN TRỊ',
-    '🤖 Trợ lý AI',
+    START_AI_CHAT_LABEL,
+    STOP_AI_CHAT_LABEL,
     '📦 Quản lý sản phẩm',
     '🗂 Quản lý danh mục',
     '📥 Thêm tồn kho',
@@ -45,7 +46,6 @@ const ADMIN_REPLY_LABELS = [
 
 function replyMenuKeyboard(admin) {
     const rows = [
-        [Markup.button.text('👤 KHÁCH HÀNG')],
         [Markup.button.text('🛍 Tất cả sản phẩm'), Markup.button.text('🗂 Danh mục')],
         [Markup.button.text('💰 Nạp tiền vào ví'), Markup.button.text('🧾 Đơn hàng')],
         [Markup.button.text('👤 Tài khoản'), Markup.button.text('🆘 Hỗ trợ')],
@@ -53,7 +53,7 @@ function replyMenuKeyboard(admin) {
     if (admin) {
         rows.push(
             [Markup.button.text('🔧 QUẢN TRỊ')],
-            [Markup.button.text('🤖 Trợ lý AI')],
+            [Markup.button.text(START_AI_CHAT_LABEL), Markup.button.text(STOP_AI_CHAT_LABEL)],
             [Markup.button.text('📦 Quản lý sản phẩm'), Markup.button.text('🗂 Quản lý danh mục')],
             [Markup.button.text('📥 Thêm tồn kho'), Markup.button.text('👁 Xem tồn kho')],
             [Markup.button.text('🧹 Xóa tồn kho')],
@@ -92,7 +92,10 @@ function categoriesKeyboard() {
 
 function adminMenuKeyboard() {
     return Markup.inlineKeyboard([
-        [Markup.button.callback('🤖 Trợ lý AI', 'nav_admin_ai')],
+        [
+            Markup.button.callback(START_AI_CHAT_LABEL, 'nav_admin_ai_start'),
+            Markup.button.callback(STOP_AI_CHAT_LABEL, 'nav_admin_ai_stop'),
+        ],
         [Markup.button.callback('📦 Tất cả sản phẩm', 'adm_products'), Markup.button.callback('➕ Tạo sản phẩm', 'nav_admin_add_product')],
         [Markup.button.callback('🗂 Danh mục', 'nav_admin_categories'), Markup.button.callback('➕ Tạo danh mục', 'nav_admin_add_category')],
         [Markup.button.callback('📥 Thêm kho', 'nav_admin_add_stock'), Markup.button.callback('👁 Xem kho', 'nav_admin_view_stock')],
@@ -309,7 +312,7 @@ async function runSheetSync(ctx) {
     return ctx.reply(`✅ Đồng bộ xong: cập nhật ${result.updated}, thêm ${result.added}, tổng ${result.total} sản phẩm.`);
 }
 
-function registerNavigation(bot) {
+function registerNavigation(bot, { aiController } = {}) {
     bot.action('nav_menu', (ctx) => { ctx.answerCbQuery(); return showMainMenu(ctx); });
     bot.action('nav_products', (ctx) => { ctx.answerCbQuery(); return productCommand.sendProductList(ctx); });
     bot.action('nav_categories', (ctx) => {
@@ -568,16 +571,20 @@ function registerNavigation(bot) {
         ctx.answerCbQuery();
         return showAdminSettings(ctx);
     });
-    bot.action('nav_admin_ai', (ctx) => {
+    bot.action('nav_admin_ai_start', (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
         ctx.answerCbQuery();
-        return ctx.reply('🤖 Dùng /ai câu hỏi của bạn. AI hiện chỉ tư vấn, chưa tự thay đổi cấu hình.');
+        return aiController?.startChat(ctx) || ctx.reply('⚠️ Trợ lý AI chưa sẵn sàng.');
+    });
+    bot.action('nav_admin_ai_stop', (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        return aiController?.stopChat(ctx) || ctx.reply('⚠️ Trợ lý AI chưa sẵn sàng.');
     });
 
     bot.on('text', async (ctx, next) => {
         const text = ctx.message.text.trim();
         const customerActions = {
-            '👤 KHÁCH HÀNG': () => showMainMenu(ctx),
             '🛍 Tất cả sản phẩm': () => productCommand.sendProductList(ctx),
             '🗂 Danh mục': () => showCategories(ctx),
             '💰 Nạp tiền vào ví': () => topupCommand.showTopupOptions(ctx),
@@ -587,7 +594,8 @@ function registerNavigation(bot) {
         };
         const adminActions = {
             '🔧 QUẢN TRỊ': () => showAdminMenu(ctx),
-            '🤖 Trợ lý AI': () => ctx.reply('🤖 Dùng /ai câu hỏi của bạn. AI hiện chỉ tư vấn, chưa tự thay đổi cấu hình.'),
+            [START_AI_CHAT_LABEL]: () => aiController?.startChat(ctx) || ctx.reply('⚠️ Trợ lý AI chưa sẵn sàng.'),
+            [STOP_AI_CHAT_LABEL]: () => aiController?.stopChat(ctx) || ctx.reply('⚠️ Trợ lý AI chưa sẵn sàng.'),
             '📦 Quản lý sản phẩm': () => showAdminProductMenu(ctx),
             '🗂 Quản lý danh mục': () => showAdminCategoryMenu(ctx),
             '📥 Thêm tồn kho': () => beginAddStock(ctx),
