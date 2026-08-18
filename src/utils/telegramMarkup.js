@@ -9,7 +9,9 @@ function escapeHtml(value) {
 
 function normalizeCustomEmojiId(value) {
     const id = String(value ?? '');
-    return /^\d+$/.test(id) ? id : null;
+    if (!/^\d{1,19}$/.test(id)) return null;
+    const numericId = BigInt(id);
+    return numericId > 0n && numericId <= 9223372036854775807n ? id : null;
 }
 
 function customEmojiHtml(customEmojiId, fallbackEmoji = '📦') {

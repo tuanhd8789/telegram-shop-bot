@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.14.1] - 2026-08-18
+
+### Fixed
+
+- Reject zero, oversized, and out-of-range custom emoji IDs before rendering a Telegram button, so malformed legacy data falls back to a plain button instead of making Telegram reject the complete keyboard.
+
 ## [1.14.0] - 2026-08-18
 
 ### Added
