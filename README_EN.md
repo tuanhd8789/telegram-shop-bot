@@ -171,9 +171,9 @@ The bot registers a chat-scoped admin command menu for `ADMIN_ID`; other account
 
 The `/ai` assistant can use privacy-filtered read tools and an allowlisted set of admin actions. Every mutation requires a time-limited **Confirm/Cancel** preview, is audited, and snapshots SQLite before database changes; stock secrets, customer identity, arbitrary SQL/shell, and deployments remain unavailable to AI. The admin may press **Chat with AI** to route every text message to AI until **Stop AI chat** is pressed. See the [admin AI guide](docs/admin-ai.en.md).
 
-## 🧭 Persistent reply keyboard
+## 🧭 Collapsible reply keyboard
 
-Send `/start` or `/menu` once to install the persistent keyboard, then use the **four-square keyboard icon beside the emoji control** to hide or show it. Customers receive the action buttons directly, without a redundant customer-title button. `ADMIN_ID` additionally receives the lower administration title, AI start/stop controls, and the other administration actions. Every reply-keyboard label routes directly to an action or the next contextual button screen; legacy commands remain available for compatibility.
+Send `/start` or `/menu` once to install the role-aware keyboard. It collapses after an action so it does not reclaim the input area while emoji search is in use; press the **four-square keyboard icon** to open it again when needed. Customers receive the action buttons directly, without a redundant customer-title button. `ADMIN_ID` additionally receives the lower administration title, AI start/stop controls, and the other administration actions. Every reply-keyboard label routes directly to an action or the next contextual button screen; legacy commands remain available for compatibility.
 
 Category creation asks for a name, then an emoji or a public PNG/JPG URL. Telegram inline buttons cannot display custom SVG images, so the button uses an emoji and the URL is shown as the category card image.
 

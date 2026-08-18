@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [1.14.5] - 2026-08-19
+
+### Fixed
+
+- Stop forcing the role-aware reply keyboard to reopen whenever Telegram hides the regular keyboard.
+- Make the bot menu collapse after each selected action while keeping it available through Telegram's keyboard icon, preventing interference with emoji search.
+
 ## [1.14.4] - 2026-08-19
 
 ### Changed
