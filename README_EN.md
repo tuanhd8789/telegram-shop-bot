@@ -183,7 +183,7 @@ Category creation asks for a name, then an emoji or a public PNG/JPG URL. Telegr
 
 Categories configured with `custom_emoji_id` use the selected Telegram custom emoji on buttons and category headings. In inventory management, choose **View stock** or run `/viewstock ID`, then select an individual record to view, edit, or delete it. Sold stock is locked to preserve order history.
 
-The customer category menu uses a compact grid of up to three columns, preserves each category icon, and ends with **Refresh** and **Back** actions. A category is green when at least one active product has local or Sheet stock, and red when every active product is out of stock.
+The customer category menu uses a compact grid of up to two columns, preserves each category icon, and ends with **Refresh** and **Back** actions. A category is green when at least one active product has local or Sheet stock, and red when every active product is out of stock.
 
 Product buttons use **Price | Stock | App name**, read their individual icon from `products.custom_emoji_id`, and are green when stocked or red when out of stock. **Administration → Product management → Edit name & icon** uses the same two-step flow. See the [custom emoji guide](docs/product-custom-emojis.md) for configuration and the current Autodesk mappings.
 

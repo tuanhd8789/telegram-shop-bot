@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.13.1] - 2026-08-18
+
+### Changed
+
+- Limit the customer category keyboard to two columns per row while preserving custom icons, availability colors, and full-width refresh/back actions.
+
 ## [1.13.0] - 2026-08-18
 
 ### Changed

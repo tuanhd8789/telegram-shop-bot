@@ -22,7 +22,7 @@ function labels(markup) {
     return rows.flat().map((button) => typeof button === 'string' ? button : button.text);
 }
 
-test('customer categories use a three-column grid with refresh and back rows', () => {
+test('customer categories use a two-column grid with refresh and back rows', () => {
     const categories = Array.from({ length: 7 }, (_, index) => ({
         id: index + 1,
         name: `Category ${index + 1}`,
@@ -32,13 +32,13 @@ test('customer categories use a three-column grid with refresh and back rows', (
     }));
 
     const rows = categoriesKeyboard(categories).reply_markup.inline_keyboard;
-    assert.deepEqual(rows.map((row) => row.length), [3, 3, 1, 1, 1]);
+    assert.deepEqual(rows.map((row) => row.length), [2, 2, 2, 1, 1, 1]);
     assert.deepEqual(
-        rows.slice(0, 3).flat().map((button) => button.callback_data),
+        rows.slice(0, 4).flat().map((button) => button.callback_data),
         categories.map((category) => `nav_category_${category.id}`)
     );
     assert.equal(rows[0][0].icon_custom_emoji_id, '5916038376150011838');
-    assert.deepEqual(rows.slice(0, 3).flat().map((button) => button.style), [
+    assert.deepEqual(rows.slice(0, 4).flat().map((button) => button.style), [
         'success', 'danger', 'success', 'danger', 'success', 'danger', 'success',
     ]);
     assert.deepEqual(rows.at(-2).map((button) => button.text), ['🔄 Làm mới']);
