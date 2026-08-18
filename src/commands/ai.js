@@ -21,6 +21,16 @@ function renderAiHtml(value) {
         .replace(/`([^`\n]+)`/g, '<code>$1</code>');
 }
 
+function normalizeProviderArguments(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+    const normalized = { ...value };
+    // Some OpenAI-compatible reasoning models add this harmless metadata even
+    // when additionalProperties is false. Strip only this known field; the
+    // gateway still rejects every other argument outside the tool allowlist.
+    if (typeof normalized.reason === 'string') delete normalized.reason;
+    return normalized;
+}
+
 function createAiController({
     adminId,
     enabled,
@@ -82,7 +92,7 @@ function createAiController({
             for (const call of calls) {
                 let args;
                 try {
-                    args = JSON.parse(call.function.arguments || '{}');
+                    args = normalizeProviderArguments(JSON.parse(call.function.arguments || '{}'));
                 } catch {
                     messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ error: 'JSON arguments không hợp lệ' }) });
                     continue;

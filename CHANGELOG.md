@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.9.1] - 2026-08-18
+
+### Fixed
+
+- Accept the harmless `reason` metadata injected by compatible reasoning providers while preserving strict rejection of every other undeclared tool argument.
+
 ## [1.9.0] - 2026-08-18
 
 ### Added
