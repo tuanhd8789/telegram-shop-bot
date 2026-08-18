@@ -25,6 +25,7 @@
 - 2026-08-19 — Compatibility normalization for provider-injected tool metadata without weakening the AI action allowlist. Fixed in [v1.14.3](CHANGELOG.md#1143---2026-08-19).
 - 2026-08-19 — Subtle in-stock category/product buttons using a neutral background and compact green status marker. Adjusted in [v1.14.4](CHANGELOG.md#1144---2026-08-19).
 - 2026-08-19 — Collapsible role-aware reply keyboard that no longer interrupts Telegram emoji search. Fixed in [v1.14.5](CHANGELOG.md#1145---2026-08-19).
+- 2026-08-19 — Neutral in-stock product buttons without extra status dots, preserving custom-icon prominence. Adjusted in [v1.14.6](CHANGELOG.md#1146---2026-08-19).
 
 ## Next
 

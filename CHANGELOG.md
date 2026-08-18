@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [1.14.6] - 2026-08-19
+
+### Changed
+
+- Remove the green availability dot from every in-stock product button so custom product icons remain visually dominant.
+- Keep in-stock products on Telegram's neutral default background because Bot API button styles do not accept custom green shades or opacity; out-of-stock products remain red.
+
 ## [1.14.5] - 2026-08-19
 
 ### Fixed

@@ -8,8 +8,7 @@ function productListKeyboard(products) {
     const buttons = products.map((p) => {
         const stock = p.display_stock ?? p.stock_count ?? 0;
         const stockLabel = p.contact_only && stock === 0 ? 'Liên hệ' : stock;
-        const availability = stock > 0 ? '🟢 ' : '';
-        let label = `${availability}${formatPrice(p.price)} | ${stockLabel} | ${p.name}`;
+        let label = `${formatPrice(p.price)} | ${stockLabel} | ${p.name}`;
 
         if (p.promotion) {
             label += ` | ${p.promotion}`;
