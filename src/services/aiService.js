@@ -1,3 +1,5 @@
+const { setTimeout: sleep } = require('node:timers/promises');
+
 const SYSTEM_PROMPT = `Bạn là trợ lý chỉ dành cho quản trị viên của Telegram Shop Bot.
 Trả lời bằng tiếng Việt, rõ ràng và ngắn gọn.
 Chỉ dùng các tool được cung cấp; không được tuyên bố đã đọc hoặc xử lý nếu chưa nhận kết quả tool.
@@ -59,6 +61,21 @@ function extractAssistantMessage(payload) {
     return { role: 'assistant', content, tool_calls: toolCalls };
 }
 
+function isRetryableStatus(status) {
+    return status === 408 || status === 429 || status >= 500;
+}
+
+function retryDelayMs(response, attempt, now = Date.now()) {
+    const retryAfter = response.headers?.get?.('retry-after');
+    if (retryAfter) {
+        const seconds = Number(retryAfter);
+        if (Number.isFinite(seconds) && seconds >= 0) return Math.min(seconds * 1000, 10000);
+        const timestamp = Date.parse(retryAfter);
+        if (Number.isFinite(timestamp)) return Math.min(Math.max(timestamp - now, 0), 10000);
+    }
+    return Math.min(1000 * (2 ** attempt), 5000);
+}
+
 function createAiService({
     baseUrl,
     apiKey,
@@ -66,6 +83,8 @@ function createAiService({
     timeoutMs = 45000,
     maxTokens = 700,
     fetchImpl = global.fetch,
+    maxRetries = 2,
+    sleepImpl = (delayMs, signal) => sleep(delayMs, undefined, { signal }),
 }) {
     const endpoint = buildChatCompletionsUrl(baseUrl);
 
@@ -75,7 +94,7 @@ function createAiService({
         timeout.unref?.();
 
         try {
-            const response = await fetchImpl(endpoint, {
+            const request = {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${apiKey}`,
@@ -91,13 +110,17 @@ function createAiService({
                     ...(tools.length ? { tools, tool_choice: 'auto' } : {}),
                 }),
                 signal: controller.signal,
-            });
+            };
 
-            if (!response.ok) {
+            for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+                const response = await fetchImpl(endpoint, request);
+                if (response.ok) return extractAssistantMessage(await response.json());
+                if (attempt < maxRetries && isRetryableStatus(response.status)) {
+                    await sleepImpl(retryDelayMs(response, attempt), controller.signal);
+                    continue;
+                }
                 throw new Error(`AI provider returned HTTP ${response.status}`);
             }
-
-            return extractAssistantMessage(await response.json());
         } catch (error) {
             if (error.name === 'AbortError') throw new Error('AI provider timed out');
             throw error;
@@ -120,4 +143,6 @@ module.exports = {
     createAiService,
     extractAssistantMessage,
     extractAssistantText,
+    isRetryableStatus,
+    retryDelayMs,
 };

@@ -21,6 +21,7 @@
 - 2026-08-18 — Two-column customer category grid for wider, more readable buttons. Adjusted in [v1.13.1](CHANGELOG.md#1131---2026-08-18).
 - 2026-08-18 — Persistent admin-editable greeting, introduction, and support content with safe placeholders. Implemented in [v1.14.0](CHANGELOG.md#1140---2026-08-18).
 - 2026-08-18 — Fail-safe custom emoji rendering for malformed legacy IDs. Fixed in [v1.14.1](CHANGELOG.md#1141---2026-08-18).
+- 2026-08-19 — Bounded automatic retry for transient AI provider rate limits and outages. Fixed in [v1.14.2](CHANGELOG.md#1142---2026-08-19).
 
 ## Next
 

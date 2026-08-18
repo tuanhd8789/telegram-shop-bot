@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [1.14.2] - 2026-08-19
+
+### Fixed
+
+- Retry transient AI provider `408`, `429`, and `5xx` responses up to two times while respecting bounded `Retry-After` delays and the existing total request timeout.
+- Keep non-transient authentication and configuration errors fail-fast without exposing provider response bodies.
+
 ## [1.14.1] - 2026-08-18
 
 ### Fixed
