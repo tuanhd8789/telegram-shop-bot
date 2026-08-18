@@ -67,6 +67,8 @@ AI_MAX_TOKENS=700
 
 Provider phải tương thích OpenAI Chat Completions và hỗ trợ `tools`/`tool_calls`. Chỉ lưu API key trong `.env` của server và giữ file ở quyền `600`.
 
+Một số provider tương thích tự chèn metadata `reason` hoặc `_` dù hai trường này không có trong schema tool. Bot loại riêng hai trường đã biết này trước khi kiểm tra; mọi tham số ngoài schema khác vẫn bị gateway từ chối.
+
 Bot tự thử lại tối đa 2 lần trong giới hạn `AI_TIMEOUT_MS` khi provider trả lỗi tạm thời `408`, `429` hoặc `5xx`. Nếu provider gửi `Retry-After`, bot sẽ tôn trọng thời gian chờ đó (tối đa 10 giây); lỗi xác thực/cấu hình `4xx` khác không được thử lại.
 
 Nếu provider chạy trong một Docker Compose project khác, nối qua network nội bộ:

@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [1.14.3] - 2026-08-19
+
+### Fixed
+
+- Ignore the known `_` and string `reason` metadata fields injected by compatible AI providers before validating tool arguments.
+- Preserve strict rejection of every other undeclared tool argument instead of increasing the bounded four-round tool loop.
+
 ## [1.14.2] - 2026-08-19
 
 ### Fixed

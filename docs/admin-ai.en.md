@@ -53,6 +53,8 @@ AI_MAX_TOKENS=700
 
 The provider must support OpenAI-compatible Chat Completions `tools` and `tool_calls`. Keep the key only in the server `.env` with mode `600`. For a provider in another Compose project, use the private-network override documented in `compose.ai-provider.yaml`.
 
+Some compatible providers inject `reason` or `_` metadata even though those fields are absent from the tool schema. The bot strips only these known fields before validation; the gateway continues to reject every other undeclared argument.
+
 The bot automatically retries up to two times within `AI_TIMEOUT_MS` when the provider returns transient `408`, `429`, or `5xx` responses. It honors `Retry-After` up to ten seconds; other authentication/configuration `4xx` responses are not retried.
 
 ## Recovery notes
