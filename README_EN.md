@@ -179,13 +179,13 @@ Category creation asks for a name, then an emoji or a public PNG/JPG URL. Telegr
 
 **Administration → Category management** provides create, edit name & icon, hide/show, and delete buttons. Editing asks for the new name first and the custom emoji ID second, then saves both together only after validation. A hidden category disappears from the customer category menu but keeps its products and order history, and remains visible to administrators so it can be restored. Deletion requires confirmation and is allowed only for empty categories.
 
-**Administration → Settings → Edit information** accepts one line in the form `Shop name | @support_username`. The shop name and support contact take effect immediately, persist in SQLite across restarts, and never modify bank details or secrets. `/setshop` remains available and writes to the same storage.
+**Administration → Settings** has separate editors for the **greeting**, **introduction**, and **support information**, plus **Shop name & contact**. Changes take effect immediately and persist in SQLite across restarts. Each editor lists its available `{name}`, `{shop}`, and `{support}` placeholders. Bank details and secrets remain outside this flow; `/setshop` remains available and writes to the same storage.
 
 Categories configured with `custom_emoji_id` use the selected Telegram custom emoji on buttons and category headings. In inventory management, choose **View stock** or run `/viewstock ID`, then select an individual record to view, edit, or delete it. Sold stock is locked to preserve order history.
 
 The customer category menu uses a compact grid of up to two columns, preserves each category icon, and ends with **Refresh** and **Back** actions. A category is green when at least one active product has local or Sheet stock, and red when every active product is out of stock.
 
-Product buttons use **Price | Stock | App name**, read their individual icon from `products.custom_emoji_id`, and are green when stocked or red when out of stock. **Administration → Product management → Edit name & icon** uses the same two-step flow. See the [custom emoji guide](docs/product-custom-emojis.md) for configuration and the current Autodesk mappings.
+Product buttons use **Price | Stock | App name**, read their individual icon from `products.custom_emoji_id`, and are green when stocked or red when out of stock. **Administration → Product management → Edit name & icon** uses the same two-step flow. Per the [Telegram Bot API](https://core.telegram.org/bots/api#inlinekeyboardbutton), an inline-button icon accepts only `icon_custom_emoji_id`; a PNG/SVG URL cannot replace it. See the [custom emoji guide](docs/product-custom-emojis.md) for configuration and the current Autodesk mappings.
 
 ## 👛 Wallet top-ups
 

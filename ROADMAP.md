@@ -19,6 +19,7 @@
 - 2026-08-18 — Compact three-column customer category grid with refresh/back navigation. Implemented in [v1.12.0](CHANGELOG.md#1120---2026-08-18).
 - 2026-08-18 — Two-step category/product name and custom-emoji editing, with stock-aware product button colors. Implemented in [v1.13.0](CHANGELOG.md#1130---2026-08-18).
 - 2026-08-18 — Two-column customer category grid for wider, more readable buttons. Adjusted in [v1.13.1](CHANGELOG.md#1131---2026-08-18).
+- 2026-08-18 — Persistent admin-editable greeting, introduction, and support content with safe placeholders. Implemented in [v1.14.0](CHANGELOG.md#1140---2026-08-18).
 
 ## Next
 
