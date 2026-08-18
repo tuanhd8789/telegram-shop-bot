@@ -209,7 +209,7 @@ function createToolRegistry({ db, config, telegram, syncFromSheet }) {
         list_categories(args) {
             onlyKeys(args, []);
             return db.prepare(`
-                SELECT c.id, c.name, c.emoji, c.custom_emoji_id, c.sort_order, c.image_url,
+                SELECT c.id, c.name, c.emoji, c.custom_emoji_id, c.sort_order, c.image_url, c.is_active,
                   (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) product_count
                 FROM categories c ORDER BY c.sort_order, c.id
             `).all();

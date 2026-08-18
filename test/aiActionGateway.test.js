@@ -10,7 +10,7 @@ function setup() {
         CREATE TABLE users (telegram_id INTEGER PRIMARY KEY, username TEXT, full_name TEXT, balance INTEGER DEFAULT 0);
         CREATE TABLE categories (
           id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, emoji TEXT DEFAULT '📦',
-          custom_emoji_id TEXT, sort_order INTEGER DEFAULT 0, image_url TEXT
+          custom_emoji_id TEXT, sort_order INTEGER DEFAULT 0, image_url TEXT, is_active INTEGER DEFAULT 1
         );
         CREATE TABLE products (
           id INTEGER PRIMARY KEY AUTOINCREMENT, category_id INTEGER, name TEXT NOT NULL, price INTEGER NOT NULL,
