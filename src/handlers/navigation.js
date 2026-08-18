@@ -18,7 +18,7 @@ const topupCommand = require('../commands/nap');
 const { START_AI_CHAT_LABEL, STOP_AI_CHAT_LABEL } = require('../commands/ai');
 
 const STOCK_PAGE_SIZE = 10;
-const CATEGORY_GRID_COLUMNS = 3;
+const CATEGORY_GRID_COLUMNS = 2;
 
 function isAdmin(ctx) {
     return ctx.from.id === config.ADMIN_ID;
