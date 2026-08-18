@@ -1,12 +1,23 @@
 const config = require('../config');
+const settingsService = require('../services/settingsService');
 const { formatPrice } = require('./keyboard');
 const { escapeHtml } = require('./telegramMarkup');
 
+function renderEditableContent(value, variables = {}) {
+    let rendered = escapeHtml(value);
+    for (const [key, replacement] of Object.entries(variables)) {
+        rendered = rendered.replaceAll(`{${key}}`, escapeHtml(replacement));
+    }
+    return rendered;
+}
+
 const messages = {
-    welcome: (name) =>
-        `👋 Chào mừng <b>${escapeHtml(name)}</b> đến với <b>${escapeHtml(config.SHOP_NAME)}</b>!\n\n` +
-        `🛒 Chuyên cung cấp tài khoản Premium giá rẻ\n\n` +
-        `Bấm biểu tượng <b>bàn phím cạnh nút emoji</b> để mở menu mua hàng, nạp ví hoặc quản trị mà không cần gõ lệnh.`,
+    welcome: (name) => {
+        const variables = { name, shop: config.SHOP_NAME, support: config.SUPPORT_CONTACT };
+        return `${renderEditableContent(settingsService.getContent('welcome'), variables)}\n\n` +
+            `${renderEditableContent(settingsService.getContent('introduction'), variables)}\n\n` +
+            `Bấm biểu tượng <b>bàn phím cạnh nút emoji</b> để mở menu mua hàng, nạp ví hoặc quản trị mà không cần gõ lệnh.`;
+    },
 
     accountInfo: (user) =>
         `👤 <b>Thông tin tài khoản</b>\n\n` +
@@ -93,10 +104,10 @@ const messages = {
     },
 
     get supportInfo() {
-        return `🆘 <b>HỖ TRỢ</b>\n\n` +
-            `Nếu bạn gặp vấn đề, liên hệ:\n` +
-            `👉 ${escapeHtml(config.SUPPORT_CONTACT)}\n\n` +
-            `⏰ Hỗ trợ 24/7`;
+        return renderEditableContent(settingsService.getContent('support'), {
+            shop: config.SHOP_NAME,
+            support: config.SUPPORT_CONTACT,
+        });
     },
 
     myId: (id) =>

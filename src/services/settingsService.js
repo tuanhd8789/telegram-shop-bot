@@ -2,8 +2,32 @@ class SettingsError extends Error {}
 
 const SHOP_NAME_KEY = 'shop_name';
 const SUPPORT_CONTACT_KEY = 'support_contact';
+const CONTENT_FIELDS = Object.freeze({
+    welcome: {
+        key: 'welcome_message',
+        label: 'lời chào',
+        maxLength: 1000,
+        defaultValue: '👋 Chào mừng {name} đến với {shop}!',
+    },
+    introduction: {
+        key: 'introduction_message',
+        label: 'giới thiệu',
+        maxLength: 1500,
+        defaultValue: '🛒 Chuyên cung cấp tài khoản Premium giá rẻ',
+    },
+    support: {
+        key: 'support_message',
+        label: 'thông tin hỗ trợ',
+        maxLength: 3500,
+        defaultValue: '🆘 HỖ TRỢ\n\nNếu bạn gặp vấn đề, liên hệ:\n👉 {support}\n\n⏰ Hỗ trợ 24/7',
+    },
+});
 
 function createSettingsService(db, config) {
+    let content = Object.fromEntries(
+        Object.entries(CONTENT_FIELDS).map(([field, definition]) => [field, definition.defaultValue])
+    );
+
     function getShopInfo() {
         return {
             shopName: config.SHOP_NAME,
@@ -12,11 +36,20 @@ function createSettingsService(db, config) {
     }
 
     function load() {
-        const rows = db.prepare('SELECT key, value FROM app_settings WHERE key IN (?, ?)')
-            .all(SHOP_NAME_KEY, SUPPORT_CONTACT_KEY);
+        content = Object.fromEntries(
+            Object.entries(CONTENT_FIELDS).map(([field, definition]) => [field, definition.defaultValue])
+        );
+        const contentKeys = Object.values(CONTENT_FIELDS).map(({ key }) => key);
+        const rows = db.prepare(`
+            SELECT key, value FROM app_settings
+            WHERE key IN (${Array(contentKeys.length + 2).fill('?').join(', ')})
+        `).all(SHOP_NAME_KEY, SUPPORT_CONTACT_KEY, ...contentKeys);
         for (const row of rows) {
             if (row.key === SHOP_NAME_KEY) config.SHOP_NAME = row.value;
             if (row.key === SUPPORT_CONTACT_KEY) config.SUPPORT_CONTACT = row.value;
+            const contentField = Object.entries(CONTENT_FIELDS)
+                .find(([, definition]) => definition.key === row.key)?.[0];
+            if (contentField) content[contentField] = row.value;
         }
         return getShopInfo();
     }
@@ -54,11 +87,35 @@ function createSettingsService(db, config) {
         return getShopInfo();
     }
 
-    return { getShopInfo, load, parseInput, updateFromInput };
+    function getContent(field) {
+        if (field === undefined) return { ...content };
+        if (!CONTENT_FIELDS[field]) throw new SettingsError('Mục nội dung không hợp lệ.');
+        return content[field];
+    }
+
+    function updateContent(field, input) {
+        const definition = CONTENT_FIELDS[field];
+        if (!definition) throw new SettingsError('Mục nội dung không hợp lệ.');
+        const value = typeof input === 'string' ? input.trim() : '';
+        if (!value || value.length > definition.maxLength || value.includes('\u0000')) {
+            throw new SettingsError(
+                `${definition.label[0].toUpperCase()}${definition.label.slice(1)} phải có từ 1 đến ${definition.maxLength} ký tự.`
+            );
+        }
+        db.prepare(`
+            INSERT INTO app_settings (key, value, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+        `).run(definition.key, value);
+        content[field] = value;
+        return { field, label: definition.label, value };
+    }
+
+    return { getShopInfo, load, parseInput, updateFromInput, getContent, updateContent };
 }
 
 const config = require('../config');
 const db = require('../database');
 const settingsService = createSettingsService(db, config);
 
-module.exports = { ...settingsService, createSettingsService, SettingsError };
+module.exports = { ...settingsService, createSettingsService, SettingsError, CONTENT_FIELDS };

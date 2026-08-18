@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## [1.14.0] - 2026-08-18
+
+### Added
+
+- Add separate admin settings for the customer greeting, shop introduction, and support information.
+- Persist editable customer-facing content in SQLite and support the safe `{name}`, `{shop}`, and `{support}` placeholders.
+
+### Changed
+
+- Clarify in category/product icon editing that Telegram inline-button icons accept numeric custom emoji IDs, not PNG/SVG URLs.
+
+### Security
+
+- Escape administrator-authored content and placeholder values before sending Telegram HTML messages.
+
 ## [1.13.1] - 2026-08-18
 
 ### Changed

@@ -2,6 +2,8 @@
 
 Product buttons render their text as `Price | Stock | App name`. When `products.custom_emoji_id` contains a numeric Telegram custom emoji document ID, that icon is attached through `InlineKeyboardButton.icon_custom_emoji_id` without changing the text order.
 
+Telegram's [InlineKeyboardButton](https://core.telegram.org/bots/api#inlinekeyboardbutton) has no PNG, SVG, or general image URL field. Therefore, category and product **button icons** accept only a numeric custom emoji document ID. A raster URL can be sent separately as a photo through [`sendPhoto`](https://core.telegram.org/bots/api#sendphoto), which is how category cover images work; it does not become the icon inside the button. SVG is not supported as an inline-button icon.
+
 ## Current Autodesk mapping
 
 | Product IDs | Product | Pack | Custom emoji ID | Type |
@@ -30,5 +32,7 @@ Trong menu quản trị danh mục hoặc sản phẩm, chọn **Sửa tên & ic
 
 1. Nhập tên mới.
 2. Nhập ID custom emoji chỉ gồm chữ số; gửi `-` nếu muốn bỏ icon.
+
+URL PNG/SVG không được nhận ở bước này vì Telegram không có trường URL ảnh cho icon của inline button. Ảnh bìa danh mục là một tin nhắn ảnh riêng, không phải icon trên nút.
 
 Tên và icon chỉ được lưu cùng lúc sau khi bước 2 hợp lệ. Nút sản phẩm còn hàng hiển thị màu xanh, hết hàng hiển thị màu đỏ; sản phẩm chỉ liên hệ không bị gán nhầm là hết hàng.

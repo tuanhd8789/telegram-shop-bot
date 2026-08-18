@@ -142,7 +142,11 @@ function adminCategoryMenuKeyboard() {
 
 function adminSettingsKeyboard() {
     return Markup.inlineKeyboard([
-        [Markup.button.callback('✏️ Sửa thông tin', 'nav_admin_edit_shop_info')],
+        [Markup.button.callback('👋 Sửa lời chào', 'nav_admin_edit_welcome')],
+        [Markup.button.callback('📝 Sửa giới thiệu', 'nav_admin_edit_introduction')],
+        [Markup.button.callback('🆘 Sửa thông tin hỗ trợ', 'nav_admin_edit_support')],
+        [Markup.button.callback('🏪 Tên shop & liên hệ', 'nav_admin_edit_shop_info')],
+        [Markup.button.url('❓ Hướng dẫn cài đặt', 'https://github.com/tuanhd8789/telegram-shop-bot/blob/main/docs/editable-customer-content.md')],
         [Markup.button.callback('↩️ Quản trị', 'nav_admin')],
     ]);
 }
@@ -344,6 +348,27 @@ function showAdminSettings(ctx) {
         adminSettingsKeyboard()
     );
 }
+
+const EDITABLE_CONTENT_ACTIONS = [
+    {
+        callback: 'nav_admin_edit_welcome',
+        field: 'welcome',
+        title: '👋 Sửa lời chào',
+        placeholders: '{name}, {shop}, {support}',
+    },
+    {
+        callback: 'nav_admin_edit_introduction',
+        field: 'introduction',
+        title: '📝 Sửa giới thiệu',
+        placeholders: '{shop}, {support}',
+    },
+    {
+        callback: 'nav_admin_edit_support',
+        field: 'support',
+        title: '🆘 Sửa thông tin hỗ trợ',
+        placeholders: '{shop}, {support}',
+    },
+];
 
 async function runSheetSync(ctx) {
     const { syncFromSheet } = require('../services/sheetSync');
@@ -695,6 +720,19 @@ function registerNavigation(bot, { aiController } = {}) {
         ctx.answerCbQuery();
         return showAdminSettings(ctx);
     });
+    for (const setting of EDITABLE_CONTENT_ACTIONS) {
+        bot.action(setting.callback, (ctx) => {
+            if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+            ctx.answerCbQuery();
+            ctx.session.navigation = { action: 'edit_content_setting', field: setting.field };
+            return ctx.replyWithHTML(
+                `<b>${setting.title}</b>\n\n` +
+                `Nội dung hiện tại:\n<pre>${escapeHtml(settingsService.getContent(setting.field))}</pre>\n` +
+                `Có thể dùng biến: <code>${escapeHtml(setting.placeholders)}</code>.\n` +
+                `Gửi nội dung mới hoặc gõ /cancel để hủy.`
+            );
+        });
+    }
     bot.action('nav_admin_edit_shop_info', (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
         ctx.answerCbQuery();
@@ -793,7 +831,7 @@ function registerNavigation(bot, { aiController } = {}) {
             const name = text.slice(0, 100);
             if (!name) return ctx.reply('❌ Tên danh mục không được để trống.');
             ctx.session.navigation = { action: 'edit_category_custom_emoji', categoryId: category.id, name };
-            return ctx.reply('🖼 Bước 2/2: Gửi ID custom emoji bằng số. Gửi dấu - để bỏ icon.');
+            return ctx.reply('🖼 Bước 2/2: Gửi ID custom emoji bằng số. Gửi dấu - để bỏ icon. URL PNG/SVG không thể dùng làm icon nút Telegram.');
         }
         if (state.action === 'edit_category_custom_emoji') {
             const category = productService.getCategoryById(state.categoryId);
@@ -803,7 +841,7 @@ function registerNavigation(bot, { aiController } = {}) {
             }
             const customEmojiId = text === '-' ? null : normalizeCustomEmojiId(text);
             if (text !== '-' && !customEmojiId) {
-                return ctx.reply('❌ ID custom emoji phải chỉ gồm chữ số. Gửi lại hoặc gửi dấu - để bỏ icon.');
+                return ctx.reply('❌ Icon nút chỉ nhận ID custom emoji bằng số, không nhận URL PNG/SVG. Gửi lại hoặc gửi dấu - để bỏ icon.');
             }
             const result = db.prepare('UPDATE categories SET name = ?, custom_emoji_id = ? WHERE id = ?')
                 .run(state.name, customEmojiId, category.id);
@@ -823,6 +861,20 @@ function registerNavigation(bot, { aiController } = {}) {
                     `✅ Đã cập nhật thông tin shop.\n\n` +
                     `🏪 Shop: <b>${escapeHtml(updated.shopName)}</b>\n` +
                     `🆘 Hỗ trợ: ${escapeHtml(updated.supportContact)}`,
+                    adminSettingsKeyboard()
+                );
+            } catch (error) {
+                if (!(error instanceof settingsService.SettingsError)) throw error;
+                return ctx.reply(`❌ ${error.message}\nGõ /cancel để hủy hoặc gửi lại.`);
+            }
+        }
+        if (state.action === 'edit_content_setting') {
+            try {
+                const updated = settingsService.updateContent(state.field, text);
+                delete ctx.session.navigation;
+                return ctx.replyWithHTML(
+                    `✅ Đã cập nhật <b>${escapeHtml(updated.label)}</b>.\n\n` +
+                    `<pre>${escapeHtml(updated.value)}</pre>`,
                     adminSettingsKeyboard()
                 );
             } catch (error) {
@@ -862,7 +914,7 @@ function registerNavigation(bot, { aiController } = {}) {
             const name = text.slice(0, 200);
             if (!name) return ctx.reply('❌ Tên sản phẩm không được để trống.');
             ctx.session.navigation = { action: 'edit_product_custom_emoji', productId: product.id, name };
-            return ctx.reply('🖼 Bước 2/2: Gửi ID custom emoji bằng số. Gửi dấu - để bỏ icon.');
+            return ctx.reply('🖼 Bước 2/2: Gửi ID custom emoji bằng số. Gửi dấu - để bỏ icon. URL PNG/SVG không thể dùng làm icon nút Telegram.');
         }
         if (state.action === 'edit_product_custom_emoji') {
             const product = productService.getById(state.productId);
@@ -872,7 +924,7 @@ function registerNavigation(bot, { aiController } = {}) {
             }
             const customEmojiId = text === '-' ? null : normalizeCustomEmojiId(text);
             if (text !== '-' && !customEmojiId) {
-                return ctx.reply('❌ ID custom emoji phải chỉ gồm chữ số. Gửi lại hoặc gửi dấu - để bỏ icon.');
+                return ctx.reply('❌ Icon nút chỉ nhận ID custom emoji bằng số, không nhận URL PNG/SVG. Gửi lại hoặc gửi dấu - để bỏ icon.');
             }
             const result = db.prepare('UPDATE products SET name = ?, custom_emoji_id = ? WHERE id = ?')
                 .run(state.name, customEmojiId, product.id);

@@ -3,6 +3,8 @@ const assert = require('node:assert/strict');
 const config = require('../src/config');
 const db = require('../src/database');
 const productService = require('../src/services/productService');
+const settingsService = require('../src/services/settingsService');
+const messages = require('../src/utils/messages');
 const {
     registerNavigation,
     replyMenuKeyboard,
@@ -124,7 +126,14 @@ test('admin reply keyboard keeps customer actions above admin actions', () => {
         assert.ok(categoryLabels.includes(label));
     }
 
-    assert.deepEqual(labels(adminSettingsKeyboard()), ['✏️ Sửa thông tin', '↩️ Quản trị']);
+    assert.deepEqual(labels(adminSettingsKeyboard()), [
+        '👋 Sửa lời chào',
+        '📝 Sửa giới thiệu',
+        '🆘 Sửa thông tin hỗ trợ',
+        '🏪 Tên shop & liên hệ',
+        '❓ Hướng dẫn cài đặt',
+        '↩️ Quản trị',
+    ]);
 });
 
 test('admin settings button updates durable shop information and keeps invalid input editable', async () => {
@@ -181,6 +190,36 @@ test('admin settings button updates durable shop information and keeps invalid i
         assert.equal(db.prepare("SELECT value FROM app_settings WHERE key = 'shop_name'").get().value, 'Shop & Store');
         assert.match(replies.at(-1)[0], /Shop &amp; Store/);
 
+        const contentCases = [
+            ['nav_admin_edit_welcome', 'welcome', 'Xin chào {name} đến {shop} <b>'],
+            ['nav_admin_edit_introduction', 'introduction', 'Giới thiệu {shop}'],
+            ['nav_admin_edit_support', 'support', 'Liên hệ {support}'],
+        ];
+        for (const [callback, field, value] of contentCases) {
+            const action = registrations.find(({ trigger }) => trigger === callback);
+            assert.ok(action, `missing ${callback}`);
+            const contentSession = {};
+            await action.handler({
+                from: { id: config.ADMIN_ID },
+                session: contentSession,
+                answerCbQuery() {},
+                replyWithHTML: (...args) => { replies.push(args); },
+            });
+            assert.deepEqual(contentSession.navigation, { action: 'edit_content_setting', field });
+            await textHandler({
+                from: { id: config.ADMIN_ID },
+                session: contentSession,
+                message: { text: value },
+                reply: (...args) => { replies.push(args); },
+                replyWithHTML: (...args) => { replies.push(args); },
+            }, () => assert.fail(`${field} edit reached next middleware`));
+            assert.equal(contentSession.navigation, undefined);
+            assert.equal(settingsService.getContent(field), value);
+        }
+        assert.match(messages.welcome('A & B'), /Xin chào A &amp; B đến Shop &amp; Store &lt;b&gt;/);
+        assert.match(messages.welcome('A & B'), /Giới thiệu Shop &amp; Store/);
+        assert.match(messages.supportInfo, /Liên hệ @support_team/);
+
         const nonAdmin = { answers: [] };
         await editAction.handler({
             from: { id: 12345 },
@@ -190,6 +229,7 @@ test('admin settings button updates durable shop information and keeps invalid i
         assert.equal(nonAdmin.answers[0][0], '⛔');
     } finally {
         db.exec('ROLLBACK');
+        settingsService.load();
         config.ADMIN_ID = original.adminId;
         config.SHOP_NAME = original.shopName;
         config.SUPPORT_CONTACT = original.supportContact;
@@ -267,11 +307,12 @@ test('admin category buttons rename, hide/show and safely delete empty categorie
         await textHandler({
             from: { id: config.ADMIN_ID },
             session: renameSession,
-            message: { text: 'not-an-id' },
+            message: { text: 'https://example.com/icon.svg' },
             reply: (...args) => { renameReplies.push(args); },
         }, () => assert.fail('invalid icon reached next middleware'));
         assert.equal(productService.getCategoryById(categoryId).name, 'Category UI test');
         assert.equal(renameSession.navigation.action, 'edit_category_custom_emoji');
+        assert.match(renameReplies.at(-1)[0], /không nhận URL PNG\/SVG/);
 
         await textHandler({
             from: { id: config.ADMIN_ID },
@@ -319,6 +360,16 @@ test('admin category buttons rename, hide/show and safely delete empty categorie
             name: 'Product renamed & safe',
         });
         assert.equal(productService.getById(productId).name, 'Protected category product');
+
+        await textHandler({
+            from: { id: config.ADMIN_ID },
+            session: productRenameSession,
+            message: { text: 'https://example.com/icon.png' },
+            reply: (...args) => { productRenameReplies.push(args); },
+        }, () => assert.fail('invalid product icon reached next middleware'));
+        assert.equal(productService.getById(productId).name, 'Protected category product');
+        assert.equal(productRenameSession.navigation.action, 'edit_product_custom_emoji');
+        assert.match(productRenameReplies.at(-1)[0], /không nhận URL PNG\/SVG/);
 
         await textHandler({
             from: { id: config.ADMIN_ID },

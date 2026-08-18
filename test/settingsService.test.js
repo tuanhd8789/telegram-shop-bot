@@ -60,3 +60,29 @@ test('shop settings reject malformed input without changing stored values', () =
         fixture.db.close();
     }
 });
+
+test('editable customer content persists independently and rejects invalid values', () => {
+    const fixture = createFixture();
+    try {
+        assert.match(fixture.service.getContent('welcome'), /\{name\}/);
+        fixture.service.updateContent('welcome', 'Xin chào {name} đến {shop}');
+        fixture.service.updateContent('introduction', 'Giới thiệu mới');
+        fixture.service.updateContent('support', 'Liên hệ {support}');
+
+        const restartedService = createSettingsService(fixture.db, {
+            SHOP_NAME: 'Default Shop',
+            SUPPORT_CONTACT: '@default_support',
+        });
+        restartedService.load();
+        assert.deepEqual(restartedService.getContent(), {
+            welcome: 'Xin chào {name} đến {shop}',
+            introduction: 'Giới thiệu mới',
+            support: 'Liên hệ {support}',
+        });
+        assert.throws(() => fixture.service.updateContent('welcome', ''), SettingsError);
+        assert.throws(() => fixture.service.updateContent('unknown', 'value'), SettingsError);
+        assert.equal(fixture.db.prepare('SELECT COUNT(*) count FROM app_settings').get().count, 3);
+    } finally {
+        fixture.db.close();
+    }
+});
