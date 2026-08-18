@@ -26,6 +26,7 @@
 - 2026-08-19 — Subtle in-stock category/product buttons using a neutral background and compact green status marker. Adjusted in [v1.14.4](CHANGELOG.md#1144---2026-08-19).
 - 2026-08-19 — Collapsible role-aware reply keyboard that no longer interrupts Telegram emoji search. Fixed in [v1.14.5](CHANGELOG.md#1145---2026-08-19).
 - 2026-08-19 — Neutral in-stock product buttons without extra status dots, preserving custom-icon prominence. Adjusted in [v1.14.6](CHANGELOG.md#1146---2026-08-19).
+- 2026-08-19 — Compact Vietnamese price labels on customer product buttons while preserving exact financial displays. Adjusted in [v1.14.7](CHANGELOG.md#1147---2026-08-19).
 
 ## Next
 

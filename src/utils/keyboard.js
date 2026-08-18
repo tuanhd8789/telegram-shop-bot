@@ -8,7 +8,7 @@ function productListKeyboard(products) {
     const buttons = products.map((p) => {
         const stock = p.display_stock ?? p.stock_count ?? 0;
         const stockLabel = p.contact_only && stock === 0 ? 'Liên hệ' : stock;
-        let label = `${formatPrice(p.price)} | ${stockLabel} | ${p.name}`;
+        let label = `${formatCompactPrice(p.price)} | ${stockLabel} | ${p.name}`;
 
         if (p.promotion) {
             label += ` | ${p.promotion}`;
@@ -77,6 +77,26 @@ function formatPrice(amount) {
 }
 
 /**
+ * Format product-list prices without losing sub-thousand precision.
+ */
+function formatCompactPrice(amount) {
+    const value = Number(amount);
+
+    if (!Number.isFinite(value) || value < 1000 || value % 1000 !== 0) {
+        return formatPrice(amount);
+    }
+
+    if (value >= 1000000) {
+        const millions = new Intl.NumberFormat('vi-VN', {
+            maximumFractionDigits: 3,
+        }).format(value / 1000000);
+        return `${millions} triệu`;
+    }
+
+    return `${value / 1000}k`;
+}
+
+/**
  * Main menu keyboard (reply keyboard)
  */
 function mainMenuKeyboard() {
@@ -93,5 +113,6 @@ module.exports = {
     orderConfirmKeyboard,
     postDeliveryKeyboard,
     formatPrice,
+    formatCompactPrice,
     mainMenuKeyboard,
 };

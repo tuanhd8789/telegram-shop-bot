@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { productListKeyboard } = require('../src/utils/keyboard');
+const { formatCompactPrice, productListKeyboard } = require('../src/utils/keyboard');
 
 test('product buttons show price, stock and app name in that order with a custom icon', () => {
     const keyboard = productListKeyboard([{
@@ -14,7 +14,7 @@ test('product buttons show price, stock and app name in that order with a custom
     }]);
 
     const button = keyboard.reply_markup.inline_keyboard[0][0];
-    assert.equal(button.text, '600.000đ | 34 | Autodesk Full App 1 năm chính chủ');
+    assert.equal(button.text, '600k | 34 | Autodesk Full App 1 năm chính chủ');
     assert.equal(button.callback_data, 'product_9');
     assert.equal(button.icon_custom_emoji_id, '5916038376150011838');
     assert.equal(button.style, undefined);
@@ -31,7 +31,7 @@ test('contact-only products keep the same column order', () => {
     }]);
 
     const button = keyboard.reply_markup.inline_keyboard[0][0];
-    assert.equal(button.text, '300.000đ | Liên hệ | AutoCAD LT');
+    assert.equal(button.text, '300k | Liên hệ | AutoCAD LT');
     assert.equal(button.icon_custom_emoji_id, undefined);
     assert.equal(button.style, undefined);
 });
@@ -45,6 +45,17 @@ test('out-of-stock product buttons are red', () => {
     }]);
 
     const button = keyboard.reply_markup.inline_keyboard[0][0];
-    assert.equal(button.text, '250.000đ | 0 | Microsoft 365');
+    assert.equal(button.text, '250k | 0 | Microsoft 365');
     assert.equal(button.style, 'danger');
+});
+
+test('compact prices use Vietnamese million units and retain meaningful decimals', () => {
+    assert.equal(formatCompactPrice(1000000), '1 triệu');
+    assert.equal(formatCompactPrice(1200000), '1,2 triệu');
+    assert.equal(formatCompactPrice(1250000), '1,25 triệu');
+});
+
+test('compact prices fall back to full currency when abbreviation would lose precision', () => {
+    assert.equal(formatCompactPrice(999999), '999.999đ');
+    assert.equal(formatCompactPrice(999), '999đ');
 });

@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.14.7] - 2026-08-19
+
+### Changed
+
+- Compact product-list prices into Vietnamese-friendly labels such as `600k`, `1 triệu`, and `1,25 triệu` while retaining exact full-price formatting in orders, payments, and administration.
+
 ## [1.14.6] - 2026-08-19
 
 ### Changed

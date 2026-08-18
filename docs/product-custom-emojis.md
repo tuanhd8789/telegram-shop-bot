@@ -1,6 +1,6 @@
 # Product custom emoji icons
 
-Product buttons render their text as `Price | Stock | App name`. When `products.custom_emoji_id` contains a numeric Telegram custom emoji document ID, that icon is attached through `InlineKeyboardButton.icon_custom_emoji_id` without changing the text order.
+Product buttons render their text as `Price | Stock | App name`. Customer-facing list prices use compact Vietnamese labels (`600k`, `1 triệu`, `1,25 triệu`), while orders, payments, and administration retain the exact full currency value. When `products.custom_emoji_id` contains a numeric Telegram custom emoji document ID, that icon is attached through `InlineKeyboardButton.icon_custom_emoji_id` without changing the text order.
 
 Telegram's [InlineKeyboardButton](https://core.telegram.org/bots/api#inlinekeyboardbutton) has no PNG, SVG, or general image URL field. Therefore, category and product **button icons** accept only a numeric custom emoji document ID. A raster URL can be sent separately as a photo through [`sendPhoto`](https://core.telegram.org/bots/api#sendphoto), which is how category cover images work; it does not become the icon inside the button. SVG is not supported as an inline-button icon.
 
