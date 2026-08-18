@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here.
 
+## [1.12.0] - 2026-08-18
+
+### Changed
+
+- Display customer product categories in a compact three-column inline-keyboard grid while preserving each category's custom emoji and callback.
+- Style a category green when at least one active product has local or Sheet stock, and red when every active product is out of stock.
+- Add full-width **Refresh** and **Back** actions below the category grid to match the customer navigation pattern.
+
 ## [1.11.0] - 2026-08-18
 
 ### Added

@@ -1,6 +1,6 @@
 {
     "name": "starizzi-shop-bot",
-    "version": "1.11.0",
+    "version": "1.12.0",
     "description": "Telegram Shop Bot - Starizzi Shop",
     "main": "src/bot.js",
     "scripts": {

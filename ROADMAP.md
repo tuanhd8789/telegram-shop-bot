@@ -16,6 +16,7 @@
 - 2026-08-18 — Controlled AI administration with function calling, privacy-filtered reads, preview/confirmation, audit, backup, protected secret handoffs, and replay protection. Implemented in [v1.9.0](CHANGELOG.md#190---2026-08-18).
 - 2026-08-18 — Dedicated administrator category management with create, rename, reversible visibility, and safe empty-category deletion. Implemented in [v1.10.0](CHANGELOG.md#1100---2026-08-18).
 - 2026-08-18 — Durable admin editing for the shop name and Telegram support contact from the Settings menu. Implemented in [v1.11.0](CHANGELOG.md#1110---2026-08-18).
+- 2026-08-18 — Compact three-column customer category grid with refresh/back navigation. Implemented in [v1.12.0](CHANGELOG.md#1120---2026-08-18).
 
 ## Next
 
