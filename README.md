@@ -169,14 +169,14 @@ npm start
 
 Bot đăng ký menu lệnh quản trị riêng cho chat có `ADMIN_ID`; tài khoản khác chỉ thấy các lệnh khách hàng. Admin cần mở chat riêng với bot và gửi `/start` ít nhất một lần để Telegram nhận diện chat.
 
-Trợ lý `/ai` hiện là chế độ chỉ đọc, không có tool tự sửa bot. Xem [hướng dẫn AI cho admin](docs/admin-ai.md).
+Trợ lý `/ai` hiện là chế độ chỉ đọc, không có tool tự sửa bot. Admin có thể bấm **Chat với AI** để chuyển mọi tin nhắn text sang AI cho đến khi bấm **Dừng chat với AI**. Xem [hướng dẫn AI cho admin](docs/admin-ai.md).
 
 ## 🧭 Menu bàn phím không cần gõ lệnh
 
 Gửi `/start` hoặc `/menu` một lần để bot cài bàn phím cố định. Sau đó bấm biểu tượng **bàn phím bốn ô cạnh nút emoji** để ẩn/hiện menu:
 
-- Khách hàng chỉ thấy phần **KHÁCH HÀNG** ở trên: tất cả sản phẩm, danh mục, nạp ví, đơn hàng, tài khoản và hỗ trợ.
-- Chỉ đúng `ADMIN_ID` mới có thêm phần **QUẢN TRỊ** ở dưới: quản lý sản phẩm/danh mục, thêm/xem tồn kho, đơn chờ, tất cả đơn, thống kê, người dùng, broadcast, đồng bộ Sheet và cài đặt.
+- Khách hàng thấy thẳng các nút sản phẩm, danh mục, nạp ví, đơn hàng, tài khoản và hỗ trợ; không còn nút tiêu đề **KHÁCH HÀNG**.
+- Chỉ đúng `ADMIN_ID` mới có thêm phần **QUẢN TRỊ** ở dưới, bao gồm hai nút bật/tắt chat AI và các nghiệp vụ quản trị khác.
 - Mỗi reply-keyboard button được nối trực tiếp vào action hoặc màn hình nút ngữ cảnh tiếp theo; không yêu cầu nhập lệnh.
 - Tạo danh mục là hội thoại hai bước: nhập tên, sau đó gửi emoji hoặc URL ảnh PNG/JPG công khai. Telegram không hiển thị SVG tùy biến ngay trên inline button; ảnh URL được dùng làm ảnh đầu danh mục, còn nút dùng emoji.
 - Danh mục được cấu hình `custom_emoji_id` sẽ dùng icon custom emoji trên nút và tiêu đề. Trong **Xem tồn kho**, chọn từng stock để xem chi tiết, sửa hoặc xóa; stock đã bán được khóa để giữ nguyên lịch sử đơn hàng.

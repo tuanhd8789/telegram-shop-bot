@@ -169,11 +169,11 @@ npm start
 
 The bot registers a chat-scoped admin command menu for `ADMIN_ID`; other accounts only see customer commands. The admin must open a private chat with the bot and send `/start` at least once so Telegram can resolve the chat.
 
-The `/ai` assistant is currently read-only and has no tool access to modify the bot. See the [admin AI guide](docs/admin-ai.en.md).
+The `/ai` assistant is currently read-only and has no tool access to modify the bot. The admin may press **Chat with AI** to route every text message to AI until **Stop AI chat** is pressed. See the [admin AI guide](docs/admin-ai.en.md).
 
 ## 🧭 Persistent reply keyboard
 
-Send `/start` or `/menu` once to install the persistent keyboard, then use the **four-square keyboard icon beside the emoji control** to hide or show it. Customers only receive the top customer section. `ADMIN_ID` additionally receives the lower administration section for products, categories, stock, orders, statistics, users, broadcast, Sheet sync, and settings. Every reply-keyboard label routes directly to an action or the next contextual button screen; legacy commands remain available for compatibility.
+Send `/start` or `/menu` once to install the persistent keyboard, then use the **four-square keyboard icon beside the emoji control** to hide or show it. Customers receive the action buttons directly, without a redundant customer-title button. `ADMIN_ID` additionally receives the lower administration title, AI start/stop controls, and the other administration actions. Every reply-keyboard label routes directly to an action or the next contextual button screen; legacy commands remain available for compatibility.
 
 Category creation asks for a name, then an emoji or a public PNG/JPG URL. Telegram inline buttons cannot display custom SVG images, so the button uses an emoji and the URL is shown as the category card image.
 

@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented here.
 
+## [1.8.0] - 2026-08-18
+
+### Added
+
+- Admin-only **Chat with AI** and **Stop AI chat** controls on both reply and inline administration keyboards.
+- Persistent SQLite AI chat-mode state so the mode remains active across bot restarts until the admin explicitly stops it.
+
+### Changed
+
+- Route every admin text message to AI while chat mode is active, while retaining the one-shot `/ai` command.
+- Remove the redundant customer-section title button and retain only the administration title shown to admins.
+
+### Security
+
+- Keep chat-mode authorization restricted to `ADMIN_ID`; the AI remains stateless, read-only, and without tools, database, shell, configuration, or secret access.
+
 ## [1.7.0] - 2026-08-17
 
 ### Added

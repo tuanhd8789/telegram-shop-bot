@@ -1,10 +1,12 @@
 # Trợ lý AI cho admin
 
-## Phạm vi v1.7.0
+## Phạm vi v1.8.0
 
 Chỉ tài khoản Telegram có ID khớp `ADMIN_ID` được dùng `/ai <câu hỏi>`. Yêu cầu từ tài khoản khác bị từ chối trước khi bot gọi provider.
 
 Mỗi câu hỏi là một phiên độc lập. AI không có lịch sử hội thoại, tool, quyền đọc database, shell, file `.env`, token hay quyền khởi động lại bot.
+
+Admin có thể bấm **🤖 Chat với AI**. Từ lúc đó, mọi tin nhắn text của admin, kể cả text giống lệnh, đều được chuyển tới AI. Bấm **🛑 Dừng chat với AI** để trở lại luồng bot. Trạng thái bật/tắt được lưu trong SQLite và không mất khi bot restart; nội dung hội thoại không được lưu.
 
 ## Cấu hình
 
@@ -39,6 +41,8 @@ docker compose -f compose.yaml -f compose.ai-provider.yaml up -d --build
 ```
 
 AI chỉ trả về đề xuất. Admin tự kiểm tra và dùng các lệnh quản trị hiện có để áp dụng.
+
+Để không cần gõ `/ai` trước mỗi câu, bấm **Chat với AI**, gửi các tin nhắn bình thường, sau đó bấm **Dừng chat với AI**.
 
 ## Thiết kế tự cấu hình an toàn cho giai đoạn sau
 

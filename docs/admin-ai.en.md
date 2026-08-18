@@ -1,10 +1,12 @@
 # Admin AI assistant
 
-## v1.7.0 scope
+## v1.8.0 scope
 
 Only the Telegram account whose ID matches `ADMIN_ID` may use `/ai <question>`. Other callers are rejected before the provider is contacted.
 
 Each question is independent. The AI receives no conversation history and has no tools, database access, shell, `.env` access, tokens, or permission to restart the bot.
+
+The admin may press **🤖 Chat with AI**. From then on, every admin text message, including command-like text, is routed to AI. Press **🛑 Stop AI chat** to return to the normal bot flow. The enabled state is persisted in SQLite across bot restarts; conversation content is not stored.
 
 ## Configuration
 
@@ -39,6 +41,8 @@ docker compose -f compose.yaml -f compose.ai-provider.yaml up -d --build
 ```
 
 The AI only returns a proposal. The admin reviews it and applies it with the existing administration commands.
+
+To avoid typing `/ai` before every question, press **Chat with AI**, send normal text messages, and then press **Stop AI chat**.
 
 ## Safe self-configuration design for a later phase
 

@@ -117,6 +117,12 @@ db.exec(`
     FOREIGN KEY (order_id) REFERENCES orders(id)
   );
 
+  CREATE TABLE IF NOT EXISTS ai_chat_modes (
+    telegram_id INTEGER PRIMARY KEY,
+    active INTEGER NOT NULL DEFAULT 0 CHECK (active IN (0, 1)),
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE INDEX IF NOT EXISTS idx_telegram_jobs_ready
     ON telegram_jobs(status, next_attempt_at, id);
 `);
