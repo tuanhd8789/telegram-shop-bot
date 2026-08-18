@@ -24,7 +24,7 @@ function labels(markup) {
     return rows.flat().map((button) => typeof button === 'string' ? button : button.text);
 }
 
-test('customer categories use a two-column grid with refresh and back rows', () => {
+test('customer categories use a two-column grid with one navigation row', () => {
     const categories = Array.from({ length: 7 }, (_, index) => ({
         id: index + 1,
         name: `Category ${index + 1}`,
@@ -34,7 +34,7 @@ test('customer categories use a two-column grid with refresh and back rows', () 
     }));
 
     const rows = categoriesKeyboard(categories).reply_markup.inline_keyboard;
-    assert.deepEqual(rows.map((row) => row.length), [2, 2, 2, 1, 1, 1]);
+    assert.deepEqual(rows.map((row) => row.length), [2, 2, 2, 1, 2]);
     assert.deepEqual(
         rows.slice(0, 4).flat().map((button) => button.callback_data),
         categories.map((category) => `nav_category_${category.id}`)
@@ -44,8 +44,8 @@ test('customer categories use a two-column grid with refresh and back rows', () 
     assert.deepEqual(rows.slice(0, 4).flat().map((button) => button.style), [
         undefined, 'danger', undefined, 'danger', undefined, 'danger', undefined,
     ]);
-    assert.deepEqual(rows.at(-2).map((button) => button.text), ['🔄 Làm mới']);
-    assert.deepEqual(rows.at(-1).map((button) => button.text), ['↩️ Quay lại']);
+    assert.deepEqual(rows.at(-1).map((button) => button.text), ['🔄 Làm mới', '↩️ Quay lại']);
+    assert.deepEqual(rows.at(-1).map((button) => button.callback_data), ['nav_categories', 'nav_menu']);
 });
 
 test('category availability follows active local and sheet stock', () => {

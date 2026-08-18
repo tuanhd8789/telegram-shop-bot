@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.14.9] - 2026-08-19
+
+### Changed
+
+- Place the category grid's **Refresh** and **Back** actions side by side in one final navigation row.
+
 ## [1.14.8] - 2026-08-19
 
 ### Fixed
