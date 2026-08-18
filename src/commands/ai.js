@@ -8,11 +8,30 @@ const MAX_TOOL_CALLS = 5;
 const AI_GUIDE_URL = 'https://github.com/tuanhd8789/telegram-shop-bot/blob/main/docs/admin-ai.md';
 const START_AI_CHAT_LABEL = '🤖 Chat với AI';
 const STOP_AI_CHAT_LABEL = '🛑 Dừng chat với AI';
+const STOP_AI_CHAT_TEXTS = new Set([
+    'dừng chat với ai',
+    'tắt chat với ai',
+    'thoát khỏi chat với ai',
+]);
 
 function getPrompt(ctx) {
     return String(ctx.message?.text || '')
         .replace(/^\/ai(?:@\w+)?(?:\s+|$)/i, '')
         .trim();
+}
+
+function getBotCommandName(text) {
+    const match = String(text || '').match(/^\/([a-z0-9_]+)(?:@\w+)?(?:\s|$)/i);
+    return match?.[1].toLowerCase() || null;
+}
+
+function isStopChatText(text) {
+    const normalized = String(text || '')
+        .trim()
+        .toLocaleLowerCase('vi-VN')
+        .replace(/[.!?]+$/, '')
+        .trim();
+    return STOP_AI_CHAT_TEXTS.has(normalized);
 }
 
 function renderAiHtml(value) {
@@ -191,8 +210,15 @@ function createAiController({
     async function textMiddleware(ctx, next) {
         const text = String(ctx.message?.text || '').trim();
         if (!text || !isAdmin(ctx)) return next();
+        const commandName = getBotCommandName(text);
+        if (commandName) {
+            if (commandName === 'start' || commandName === 'menu') {
+                chatModeStore.setActive(adminId, false);
+            }
+            return next();
+        }
         if (text === START_AI_CHAT_LABEL) return startChat(ctx);
-        if (text === STOP_AI_CHAT_LABEL) return stopChat(ctx);
+        if (text === STOP_AI_CHAT_LABEL || isStopChatText(text)) return stopChat(ctx);
         if (!chatModeStore.isActive(adminId)) return next();
         if (!isAvailable()) return ctx.reply('⚠️ Trợ lý AI chưa được bật hoặc cấu hình chưa đầy đủ.');
         return answerPrompt(ctx, text, true);
@@ -261,6 +287,8 @@ module.exports = registerAiCommand;
 module.exports.createAiCommandHandler = createAiCommandHandler;
 module.exports.createAiController = createAiController;
 module.exports.getPrompt = getPrompt;
+module.exports.getBotCommandName = getBotCommandName;
+module.exports.isStopChatText = isStopChatText;
 module.exports.renderAiHtml = renderAiHtml;
 module.exports.START_AI_CHAT_LABEL = START_AI_CHAT_LABEL;
 module.exports.STOP_AI_CHAT_LABEL = STOP_AI_CHAT_LABEL;

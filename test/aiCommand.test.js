@@ -37,7 +37,7 @@ test('blocks non-admin users before calling the provider', async () => {
     assert.match(replies[0], /chỉ dành cho admin/);
 });
 
-test('keeps all admin text in AI mode until the stop button is pressed', async () => {
+test('routes normal admin text to AI while letting bot commands pass through', async () => {
     let active = false;
     const prompts = [];
     const chatModeStore = {
@@ -57,10 +57,16 @@ test('keeps all admin text in AI mode until the stop button is pressed', async (
     assert.equal(active, true);
     assert.equal(start.ctx.session.navigation, undefined);
 
-    const message = context(123, '/stats');
-    await controller.textMiddleware(message.ctx, () => assert.fail('active AI text reached the bot command'));
-    assert.deepEqual(prompts, ['/stats']);
-    assert.deepEqual(message.replies, ['AI: /stats']);
+    let commandReached = false;
+    const command = context(123, '/stats');
+    await controller.textMiddleware(command.ctx, () => { commandReached = true; });
+    assert.equal(commandReached, true);
+    assert.equal(active, true);
+
+    const message = context(123, 'tình trạng shop');
+    await controller.textMiddleware(message.ctx, () => assert.fail('active AI text reached the bot handlers'));
+    assert.deepEqual(prompts, ['tình trạng shop']);
+    assert.deepEqual(message.replies, ['AI: tình trạng shop']);
 
     const stop = context(123, STOP_AI_CHAT_LABEL);
     await controller.textMiddleware(stop.ctx, () => assert.fail('stop button reached next middleware'));
@@ -70,7 +76,48 @@ test('keeps all admin text in AI mode until the stop button is pressed', async (
     const afterStop = context(123, 'tin nhắn bình thường');
     await controller.textMiddleware(afterStop.ctx, () => { nextCalled = true; });
     assert.equal(nextCalled, true);
-    assert.deepEqual(prompts, ['/stats']);
+    assert.deepEqual(prompts, ['tình trạng shop']);
+});
+
+test('start and menu commands leave AI mode before reaching command handlers', async () => {
+    let active = true;
+    const controller = createAiController({
+        adminId: 123,
+        enabled: true,
+        aiService: { answer: async () => assert.fail('navigation command reached AI') },
+        chatModeStore: {
+            isActive: () => active,
+            setActive: (_telegramId, value) => { active = value; },
+        },
+    });
+
+    for (const text of ['/start', '/menu@minhbrandbot']) {
+        active = true;
+        let nextCalled = false;
+        const request = context(123, text);
+        await controller.textMiddleware(request.ctx, () => { nextCalled = true; });
+        assert.equal(nextCalled, true);
+        assert.equal(active, false);
+    }
+});
+
+test('natural Vietnamese exit text stops AI without calling the provider', async () => {
+    let active = true;
+    const controller = createAiController({
+        adminId: 123,
+        enabled: true,
+        aiService: { answer: async () => assert.fail('exit text reached AI') },
+        chatModeStore: {
+            isActive: () => active,
+            setActive: (_telegramId, value) => { active = value; },
+        },
+    });
+    const request = context(123, 'Thoát khỏi chat với Ai.');
+
+    await controller.textMiddleware(request.ctx, () => assert.fail('exit text reached bot handlers'));
+
+    assert.equal(active, false);
+    assert.match(request.replies[0], /Đã dừng chat với AI/);
 });
 
 test('never lets a non-admin enable persistent AI chat mode', async () => {
