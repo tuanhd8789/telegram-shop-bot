@@ -55,7 +55,19 @@ const productService = {
     getCategories({ includeInactive = false } = {}) {
         return db.prepare(`
             SELECT c.*,
-              (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) product_count
+              (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) product_count,
+              EXISTS (
+                SELECT 1 FROM products p
+                WHERE p.category_id = c.id
+                  AND p.is_active = 1
+                  AND (
+                    COALESCE(p.sheet_stock, 0) > 0
+                    OR EXISTS (
+                      SELECT 1 FROM stock s
+                      WHERE s.product_id = p.id AND s.is_sold = 0
+                    )
+                  )
+              ) has_stock
             FROM categories c
             WHERE (? = 1 OR c.is_active = 1)
             ORDER BY c.sort_order, c.id

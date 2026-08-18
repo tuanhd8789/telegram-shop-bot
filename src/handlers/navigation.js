@@ -82,13 +82,15 @@ function showMainMenu(ctx, text) {
 function categoriesKeyboard(categories = productService.getCategories()) {
     const rows = [];
     for (let index = 0; index < categories.length; index += CATEGORY_GRID_COLUMNS) {
-        rows.push(categories.slice(index, index + CATEGORY_GRID_COLUMNS).map((category) =>
-            callbackWithCustomEmoji(
+        rows.push(categories.slice(index, index + CATEGORY_GRID_COLUMNS).map((category) => {
+            const button = callbackWithCustomEmoji(
                 category.custom_emoji_id ? category.name : `${category.emoji || '📂'} ${category.name}`,
                 `nav_category_${category.id}`,
                 category.custom_emoji_id
-            )
-        ));
+            );
+            button.style = category.has_stock ? 'success' : 'danger';
+            return button;
+        }));
     }
     rows.push([Markup.button.callback('🔄 Làm mới', 'nav_categories')]);
     rows.push([Markup.button.callback('↩️ Quay lại', 'nav_menu')]);

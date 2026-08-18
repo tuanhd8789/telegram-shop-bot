@@ -28,6 +28,7 @@ test('customer categories use a three-column grid with refresh and back rows', (
         name: `Category ${index + 1}`,
         emoji: '📂',
         custom_emoji_id: index === 0 ? '5916038376150011838' : null,
+        has_stock: index % 2 === 0,
     }));
 
     const rows = categoriesKeyboard(categories).reply_markup.inline_keyboard;
@@ -37,8 +38,41 @@ test('customer categories use a three-column grid with refresh and back rows', (
         categories.map((category) => `nav_category_${category.id}`)
     );
     assert.equal(rows[0][0].icon_custom_emoji_id, '5916038376150011838');
+    assert.deepEqual(rows.slice(0, 3).flat().map((button) => button.style), [
+        'success', 'danger', 'success', 'danger', 'success', 'danger', 'success',
+    ]);
     assert.deepEqual(rows.at(-2).map((button) => button.text), ['🔄 Làm mới']);
     assert.deepEqual(rows.at(-1).map((button) => button.text), ['↩️ Quay lại']);
+});
+
+test('category availability follows active local and sheet stock', () => {
+    db.exec('BEGIN');
+    try {
+        const categoryId = Number(db.prepare(
+            'INSERT INTO categories (name, emoji, sort_order) VALUES (?, ?, ?)'
+        ).run('Category stock test', '📂', 9999).lastInsertRowid);
+        const productId = Number(db.prepare(
+            'INSERT INTO products (category_id, name, price, sheet_stock) VALUES (?, ?, ?, ?)'
+        ).run(categoryId, 'Category stock product', 1000, 0).lastInsertRowid);
+
+        assert.equal(productService.getCategories({ includeInactive: true })
+            .find((category) => category.id === categoryId).has_stock, 0);
+
+        db.prepare('UPDATE products SET sheet_stock = 2 WHERE id = ?').run(productId);
+        assert.equal(productService.getCategories({ includeInactive: true })
+            .find((category) => category.id === categoryId).has_stock, 1);
+
+        db.prepare('UPDATE products SET sheet_stock = 0 WHERE id = ?').run(productId);
+        db.prepare('INSERT INTO stock (product_id, data) VALUES (?, ?)').run(productId, 'available');
+        assert.equal(productService.getCategories({ includeInactive: true })
+            .find((category) => category.id === categoryId).has_stock, 1);
+
+        db.prepare('UPDATE products SET is_active = 0 WHERE id = ?').run(productId);
+        assert.equal(productService.getCategories({ includeInactive: true })
+            .find((category) => category.id === categoryId).has_stock, 0);
+    } finally {
+        db.exec('ROLLBACK');
+    }
 });
 
 test('customer reply keyboard is persistent and does not expose admin actions', () => {
