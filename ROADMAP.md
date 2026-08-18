@@ -27,6 +27,7 @@
 - 2026-08-19 — Collapsible role-aware reply keyboard that no longer interrupts Telegram emoji search. Fixed in [v1.14.5](CHANGELOG.md#1145---2026-08-19).
 - 2026-08-19 — Neutral in-stock product buttons without extra status dots, preserving custom-icon prominence. Adjusted in [v1.14.6](CHANGELOG.md#1146---2026-08-19).
 - 2026-08-19 — Compact Vietnamese price labels on customer product buttons while preserving exact financial displays. Adjusted in [v1.14.7](CHANGELOG.md#1147---2026-08-19).
+- 2026-08-19 — Escape-safe persistent AI chat with command bypass and a role-aware keyboard that remains user-toggleable. Fixed in [v1.14.8](CHANGELOG.md#1148---2026-08-19).
 
 ## Next
 

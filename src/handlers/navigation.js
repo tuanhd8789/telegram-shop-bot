@@ -72,14 +72,13 @@ function replyMenuKeyboard(admin) {
     }
     return Markup.keyboard(rows)
         .resize()
-        .oneTime()
         .placeholder('Chọn chức năng trong menu');
 }
 
 function showMainMenu(ctx, text) {
     userService.findOrCreate(ctx.from);
     return ctx.replyWithHTML(
-        text || '⌨️ <b>MENU BÀN PHÍM</b>\n\nMenu tự thu sau khi chọn. Bấm biểu tượng bàn phím để mở lại khi cần.',
+        text || '⌨️ <b>MENU BÀN PHÍM</b>\n\nBấm biểu tượng bàn phím cạnh ô nhập để ẩn hoặc mở menu khi cần.',
         replyMenuKeyboard(isAdmin(ctx))
     );
 }

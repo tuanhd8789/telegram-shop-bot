@@ -6,7 +6,9 @@ Chỉ tài khoản Telegram có ID khớp `ADMIN_ID` được dùng `/ai` và ch
 
 Tool đọc chạy ngay và chỉ trả dữ liệu đã lọc. Tool ghi luôn tạo bản xem trước với nút **Xác nhận/Hủy**, có hạn 10 phút và không thay đổi dữ liệu trước khi admin xác nhận. Yêu cầu và kết quả được lưu trong `ai_action_requests` làm audit log bền vững.
 
-Nội dung hội thoại không được lưu. Chế độ bật/tắt chat vẫn được giữ trong SQLite qua restart.
+Nội dung hội thoại không được lưu. Chế độ bật/tắt chat vẫn được giữ trong SQLite qua restart. Mọi lệnh bắt đầu bằng `/` được chuyển thẳng cho bộ xử lý lệnh thay vì gửi tới provider; `/start` và `/menu` đồng thời tắt chế độ AI và dựng lại menu bàn phím. Admin cũng có thể gửi `Thoát khỏi chat với AI` hoặc bấm **Dừng chat với AI**.
+
+Menu bàn phím không dùng `is_persistent` hoặc `one_time_keyboard`: người dùng có thể tự ẩn/mở bằng biểu tượng bàn phím cạnh ô nhập, nhưng menu không tự biến mất sau khi chọn chức năng và bot không ép nó bật lại khi đang dùng emoji.
 
 ## Luồng nghiệp vụ
 

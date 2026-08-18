@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [1.14.8] - 2026-08-19
+
+### Fixed
+
+- Route slash commands around persistent AI chat mode; `/start` and `/menu` now stop AI mode before restoring normal bot navigation.
+- Recognize natural Vietnamese AI-exit text and keep the role-aware reply keyboard available without forcing it over the regular or emoji keyboard.
+
 ## [1.14.7] - 2026-08-19
 
 ### Changed
