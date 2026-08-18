@@ -179,11 +179,11 @@ Gửi `/start` hoặc `/menu` một lần để bot cài bàn phím cố định
 - Chỉ đúng `ADMIN_ID` mới có thêm phần **QUẢN TRỊ** ở dưới, bao gồm hai nút bật/tắt chat AI và các nghiệp vụ quản trị khác.
 - Mỗi reply-keyboard button được nối trực tiếp vào action hoặc màn hình nút ngữ cảnh tiếp theo; không yêu cầu nhập lệnh.
 - Tạo danh mục là hội thoại hai bước: nhập tên, sau đó gửi emoji hoặc URL ảnh PNG/JPG công khai. Telegram không hiển thị SVG tùy biến ngay trên inline button; ảnh URL được dùng làm ảnh đầu danh mục, còn nút dùng emoji.
-- **Quản trị → Quản lý danh mục** có các nút tạo, đổi tên, ẩn/hiện và xóa. Danh mục ẩn biến mất khỏi menu danh mục của khách nhưng vẫn giữ sản phẩm/lịch sử và vẫn xuất hiện trong trang quản trị để bật lại. Xóa yêu cầu xác nhận và chỉ áp dụng cho danh mục rỗng.
+- **Quản trị → Quản lý danh mục** có các nút tạo, sửa tên & icon, ẩn/hiện và xóa. Luồng sửa nhận tên mới trước, sau đó nhận ID custom emoji; tên và icon chỉ được lưu cùng lúc khi ID hợp lệ. Danh mục ẩn biến mất khỏi menu danh mục của khách nhưng vẫn giữ sản phẩm/lịch sử và vẫn xuất hiện trong trang quản trị để bật lại. Xóa yêu cầu xác nhận và chỉ áp dụng cho danh mục rỗng.
 - **Quản trị → Cài đặt → Sửa thông tin** cho phép admin gửi một dòng theo mẫu `Tên shop | @tai_khoan_ho_tro`. Tên shop và liên hệ hỗ trợ được áp dụng ngay, lưu trong SQLite và còn nguyên sau khi bot khởi động lại; thông tin ngân hàng và secret không thuộc luồng này. `/setshop` vẫn dùng được và lưu vào cùng nơi.
 - Danh mục được cấu hình `custom_emoji_id` sẽ dùng icon custom emoji trên nút và tiêu đề. Trong **Xem tồn kho**, chọn từng stock để xem chi tiết, sửa hoặc xóa; stock đã bán được khóa để giữ nguyên lịch sử đơn hàng.
 - Menu danh mục khách hàng hiển thị theo lưới tối đa 3 cột, giữ icon riêng của từng danh mục và có nút **Làm mới**/**Quay lại** ở cuối. Nút xanh khi có ít nhất một sản phẩm đang bật còn stock cục bộ hoặc stock Sheet; nút đỏ khi toàn bộ sản phẩm đang bật hết hàng.
-- Nút sản phẩm hiển thị theo thứ tự **Giá | Tồn kho | Tên app** và dùng `products.custom_emoji_id` làm icon riêng. Xem cách cấu hình và ánh xạ Autodesk hiện tại tại [`docs/product-custom-emojis.md`](docs/product-custom-emojis.md).
+- Nút sản phẩm hiển thị theo thứ tự **Giá | Tồn kho | Tên app**, dùng `products.custom_emoji_id` làm icon riêng, màu xanh khi còn hàng và màu đỏ khi hết hàng. **Quản trị → Quản lý sản phẩm → Sửa tên & icon** cũng dùng luồng hai bước. Xem [hướng dẫn custom emoji](docs/product-custom-emojis.md).
 - Các lệnh cũ vẫn được giữ để tương thích và xử lý sự cố.
 
 ## 👛 Nạp tiền vào ví

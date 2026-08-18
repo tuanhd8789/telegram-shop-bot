@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here.
 
+## [1.13.0] - 2026-08-18
+
+### Changed
+
+- Make category and product name editing a two-step admin flow: enter the new name, then enter a numeric Telegram custom emoji ID or `-` to remove the icon.
+- Apply the name and custom emoji together only after the second step validates successfully.
+- Style stocked product buttons green and out-of-stock product buttons red; contact-only products without stock remain neutral.
+
+### Fixed
+
+- Use Google Sheet stock when calculating product-button availability inside a category, matching the existing category availability indicator.
+
 ## [1.12.0] - 2026-08-18
 
 ### Changed

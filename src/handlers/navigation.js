@@ -7,7 +7,12 @@ const orderService = require('../services/orderService');
 const settingsService = require('../services/settingsService');
 const messages = require('../utils/messages');
 const { formatPrice, productListKeyboard } = require('../utils/keyboard');
-const { callbackWithCustomEmoji, customEmojiHtml, escapeHtml } = require('../utils/telegramMarkup');
+const {
+    callbackWithCustomEmoji,
+    customEmojiHtml,
+    escapeHtml,
+    normalizeCustomEmojiId,
+} = require('../utils/telegramMarkup');
 const productCommand = require('../commands/product');
 const topupCommand = require('../commands/nap');
 const { START_AI_CHAT_LABEL, STOP_AI_CHAT_LABEL } = require('../commands/ai');
@@ -118,7 +123,7 @@ function adminProductMenuKeyboard() {
     return Markup.inlineKeyboard([
         [Markup.button.callback('📦 Tất cả sản phẩm', 'nav_admin_product_list')],
         [Markup.button.callback('➕ Tạo sản phẩm', 'nav_admin_add_product')],
-        [Markup.button.callback('💵 Sửa giá', 'nav_admin_edit_price'), Markup.button.callback('✏️ Sửa tên', 'nav_admin_edit_name')],
+        [Markup.button.callback('💵 Sửa giá', 'nav_admin_edit_price'), Markup.button.callback('✏️ Sửa tên & icon', 'nav_admin_edit_name')],
         [Markup.button.callback('🔁 Bật/tắt', 'nav_admin_toggle_product'), Markup.button.callback('🗑 Xóa', 'nav_admin_delete_product')],
         [Markup.button.callback('↩️ Quản trị', 'nav_admin')],
     ]);
@@ -127,7 +132,7 @@ function adminProductMenuKeyboard() {
 function adminCategoryMenuKeyboard() {
     return Markup.inlineKeyboard([
         [Markup.button.callback('➕ Tạo danh mục', 'nav_admin_add_category')],
-        [Markup.button.callback('✏️ Đổi tên danh mục', 'nav_admin_edit_category_name')],
+        [Markup.button.callback('✏️ Sửa tên & icon', 'nav_admin_edit_category_name')],
         [Markup.button.callback('🙈 Ẩn/hiện danh mục', 'nav_admin_toggle_category')],
         [Markup.button.callback('🗑 Xóa danh mục', 'nav_admin_delete_category')],
         [Markup.button.callback('🗂 Xem danh mục', 'nav_admin_categories')],
@@ -407,7 +412,7 @@ function registerNavigation(bot, { aiController } = {}) {
     bot.action('nav_admin_edit_name', (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
         ctx.answerCbQuery();
-        const picker = productPicker('nav_edit_name', '✏️ Chọn sản phẩm cần sửa tên:');
+        const picker = productPicker('nav_edit_name', '✏️ Chọn sản phẩm cần sửa tên & icon:');
         return ctx.reply(picker.text, picker.keyboard);
     });
     bot.action(/^nav_edit_name_(\d+)$/, (ctx) => {
@@ -416,7 +421,7 @@ function registerNavigation(bot, { aiController } = {}) {
         if (!product) return ctx.answerCbQuery('❌ Sản phẩm không tồn tại');
         ctx.answerCbQuery();
         ctx.session.navigation = { action: 'edit_product_name', productId: product.id };
-        return ctx.replyWithHTML(`✏️ Gửi tên mới cho <b>${product.name}</b>.`);
+        return ctx.replyWithHTML(`✏️ Bước 1/2: Gửi tên mới cho <b>${escapeHtml(product.name)}</b>. Gõ /cancel để hủy.`);
     });
     bot.action('nav_admin_toggle_product', (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
@@ -489,7 +494,7 @@ function registerNavigation(bot, { aiController } = {}) {
     bot.action('nav_admin_edit_category_name', (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
         ctx.answerCbQuery();
-        const picker = categoryPicker('nav_category_edit_name', '✏️ Chọn danh mục cần đổi tên:');
+        const picker = categoryPicker('nav_category_edit_name', '✏️ Chọn danh mục cần sửa tên & icon:');
         return ctx.reply(picker.text, picker.keyboard);
     });
     bot.action(/^nav_category_edit_name_(\d+)$/, (ctx) => {
@@ -498,7 +503,7 @@ function registerNavigation(bot, { aiController } = {}) {
         if (!category) return ctx.answerCbQuery('❌ Danh mục không tồn tại');
         ctx.answerCbQuery();
         ctx.session.navigation = { action: 'edit_category_name', categoryId: category.id };
-        return ctx.replyWithHTML(`✏️ Gửi tên mới cho danh mục <b>${escapeHtml(category.name)}</b>. Gõ /cancel để hủy.`);
+        return ctx.replyWithHTML(`✏️ Bước 1/2: Gửi tên mới cho danh mục <b>${escapeHtml(category.name)}</b>. Gõ /cancel để hủy.`);
     });
     bot.action('nav_admin_toggle_category', (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
@@ -787,11 +792,26 @@ function registerNavigation(bot, { aiController } = {}) {
             }
             const name = text.slice(0, 100);
             if (!name) return ctx.reply('❌ Tên danh mục không được để trống.');
-            const result = db.prepare('UPDATE categories SET name = ? WHERE id = ?').run(name, category.id);
+            ctx.session.navigation = { action: 'edit_category_custom_emoji', categoryId: category.id, name };
+            return ctx.reply('🖼 Bước 2/2: Gửi ID custom emoji bằng số. Gửi dấu - để bỏ icon.');
+        }
+        if (state.action === 'edit_category_custom_emoji') {
+            const category = productService.getCategoryById(state.categoryId);
+            if (!category) {
+                delete ctx.session.navigation;
+                return ctx.reply('❌ Danh mục không tồn tại.');
+            }
+            const customEmojiId = text === '-' ? null : normalizeCustomEmojiId(text);
+            if (text !== '-' && !customEmojiId) {
+                return ctx.reply('❌ ID custom emoji phải chỉ gồm chữ số. Gửi lại hoặc gửi dấu - để bỏ icon.');
+            }
+            const result = db.prepare('UPDATE categories SET name = ?, custom_emoji_id = ? WHERE id = ?')
+                .run(state.name, customEmojiId, category.id);
             delete ctx.session.navigation;
-            if (result.changes !== 1) return ctx.reply('❌ Không thể đổi tên danh mục; vui lòng tải lại.');
+            if (result.changes !== 1) return ctx.reply('❌ Không thể sửa danh mục; vui lòng tải lại.');
             return ctx.replyWithHTML(
-                `✅ Đã đổi tên <b>${escapeHtml(category.name)}</b> → <b>${escapeHtml(name)}</b>.`,
+                `✅ Đã sửa danh mục <b>${escapeHtml(category.name)}</b> → ` +
+                `<b>${escapeHtml(state.name)}</b>. Icon: ${customEmojiId ? `<code>${customEmojiId}</code>` : 'không dùng'}.`,
                 Markup.inlineKeyboard([[Markup.button.callback('↩️ Quản lý danh mục', 'nav_admin_category_menu')]])
             );
         }
@@ -840,9 +860,28 @@ function registerNavigation(bot, { aiController } = {}) {
                 return ctx.reply('❌ Sản phẩm không tồn tại.');
             }
             const name = text.slice(0, 200);
-            db.prepare('UPDATE products SET name = ? WHERE id = ?').run(name, product.id);
+            if (!name) return ctx.reply('❌ Tên sản phẩm không được để trống.');
+            ctx.session.navigation = { action: 'edit_product_custom_emoji', productId: product.id, name };
+            return ctx.reply('🖼 Bước 2/2: Gửi ID custom emoji bằng số. Gửi dấu - để bỏ icon.');
+        }
+        if (state.action === 'edit_product_custom_emoji') {
+            const product = productService.getById(state.productId);
+            if (!product) {
+                delete ctx.session.navigation;
+                return ctx.reply('❌ Sản phẩm không tồn tại.');
+            }
+            const customEmojiId = text === '-' ? null : normalizeCustomEmojiId(text);
+            if (text !== '-' && !customEmojiId) {
+                return ctx.reply('❌ ID custom emoji phải chỉ gồm chữ số. Gửi lại hoặc gửi dấu - để bỏ icon.');
+            }
+            const result = db.prepare('UPDATE products SET name = ?, custom_emoji_id = ? WHERE id = ?')
+                .run(state.name, customEmojiId, product.id);
             delete ctx.session.navigation;
-            return ctx.replyWithHTML(`✅ Đã đổi tên <b>${product.name}</b> → <b>${name}</b>.`);
+            if (result.changes !== 1) return ctx.reply('❌ Không thể sửa sản phẩm; vui lòng tải lại.');
+            return ctx.replyWithHTML(
+                `✅ Đã sửa sản phẩm <b>${escapeHtml(product.name)}</b> → ` +
+                `<b>${escapeHtml(state.name)}</b>. Icon: ${customEmojiId ? `<code>${customEmojiId}</code>` : 'không dùng'}.`
+            );
         }
         if (state.action === 'stock_data') {
             const lines = text.split('\n').filter((line) => line.trim());
