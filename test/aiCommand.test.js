@@ -128,6 +128,7 @@ test('returns safe usage and provider failure messages', async () => {
 
 test('runs read tools automatically and returns the grounded answer', async () => {
     const calls = [];
+    let receivedArgs;
     const aiService = {
         async complete(messages) {
             calls.push(messages);
@@ -135,7 +136,9 @@ test('runs read tools automatically and returns the grounded answer', async () =
                 return {
                     role: 'assistant',
                     content: '',
-                    tool_calls: [{ id: 'read-1', type: 'function', function: { name: 'get_shop_overview', arguments: '{}' } }],
+                    tool_calls: [{ id: 'read-1', type: 'function', function: {
+                        name: 'get_shop_overview', arguments: '{"reason":"Kiểm tra tổng quan"}',
+                    } }],
                 };
             }
             assert.match(messages.at(-1).content, /"users":7/);
@@ -146,7 +149,10 @@ test('runs read tools automatically and returns the grounded answer', async () =
         getTools: () => [],
         isReadTool: (name) => name === 'get_shop_overview',
         isWriteTool: () => false,
-        runRead: () => ({ users: 7 }),
+        runRead: (_name, args) => {
+            receivedArgs = args;
+            return { users: 7 };
+        },
     };
     const controller = createAiController({
         adminId: 123,
@@ -160,6 +166,7 @@ test('runs read tools automatically and returns the grounded answer', async () =
     await controller.command(request.ctx);
 
     assert.equal(calls.length, 2);
+    assert.deepEqual(receivedArgs, {});
     assert.equal(request.replies[0], '<b>Shop ổn định</b>');
 });
 
