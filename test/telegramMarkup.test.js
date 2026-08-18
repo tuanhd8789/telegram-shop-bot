@@ -18,7 +18,15 @@ test('custom emoji helpers produce Bot API button icons and safe HTML fallback',
 });
 
 test('invalid custom emoji IDs fall back to a plain emoji', () => {
-    const button = callbackWithCustomEmoji('Autodesk', 'nav_category_4', 'bad-id');
-    assert.equal(button.icon_custom_emoji_id, undefined);
-    assert.equal(customEmojiHtml('bad-id', '📦'), '📦');
+    for (const invalidId of [
+        'bad-id',
+        'https://example.com/icon.png',
+        '53885605919861068155388560591986106815',
+        '9223372036854775808',
+        '0',
+    ]) {
+        const button = callbackWithCustomEmoji('Autodesk', 'nav_category_4', invalidId);
+        assert.equal(button.icon_custom_emoji_id, undefined);
+        assert.equal(customEmojiHtml(invalidId, '📦'), '📦');
+    }
 });
