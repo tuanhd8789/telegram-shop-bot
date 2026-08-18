@@ -1,5 +1,10 @@
+const { Markup } = require('telegraf');
+const { escapeHtml } = require('../utils/telegramMarkup');
+
 const MAX_PROMPT_LENGTH = 4000;
-const MAX_TELEGRAM_LENGTH = 3900;
+const MAX_TELEGRAM_LENGTH = 3500;
+const MAX_TOOL_ROUNDS = 4;
+const MAX_TOOL_CALLS = 5;
 const AI_GUIDE_URL = 'https://github.com/tuanhd8789/telegram-shop-bot/blob/main/docs/admin-ai.md';
 const START_AI_CHAT_LABEL = '🤖 Chat với AI';
 const STOP_AI_CHAT_LABEL = '🛑 Dừng chat với AI';
@@ -10,11 +15,18 @@ function getPrompt(ctx) {
         .trim();
 }
 
+function renderAiHtml(value) {
+    return escapeHtml(value)
+        .replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>')
+        .replace(/`([^`\n]+)`/g, '<code>$1</code>');
+}
+
 function createAiController({
     adminId,
     enabled,
     aiService,
     chatModeStore,
+    actionGateway,
     logger = console,
 }) {
     let requestRunning = false;
@@ -25,6 +37,73 @@ function createAiController({
 
     function isAvailable() {
         return enabled && aiService;
+    }
+
+    function replyAiText(ctx, value, extra) {
+        const text = String(value || '').slice(0, MAX_TELEGRAM_LENGTH);
+        if (ctx.replyWithHTML) return ctx.replyWithHTML(renderAiHtml(text), extra);
+        return ctx.reply(text, extra);
+    }
+
+    function showProposal(ctx, proposal) {
+        const text =
+            `🛡️ <b>AI ĐỀ XUẤT HÀNH ĐỘNG</b>\n\n` +
+            `${escapeHtml(proposal.preview)}\n\n` +
+            `Mã audit: <code>${proposal.id}</code>\n` +
+            `Yêu cầu hết hạn sau 10 phút. Chưa có thay đổi nào được áp dụng.`;
+        const keyboard = Markup.inlineKeyboard([[
+            Markup.button.callback('✅ Xác nhận', `ai_action_confirm_${proposal.id}`),
+            Markup.button.callback('❌ Hủy', `ai_action_cancel_${proposal.id}`),
+        ]]);
+        if (ctx.replyWithHTML) return ctx.replyWithHTML(text, keyboard);
+        return ctx.reply(proposal.preview, keyboard);
+    }
+
+    async function runTools(ctx, prompt, canReply = () => true) {
+        if (!actionGateway || typeof aiService.complete !== 'function') {
+            const answer = await aiService.answer(prompt);
+            return canReply() ? replyAiText(ctx, answer) : undefined;
+        }
+
+        const messages = [{ role: 'user', content: prompt }];
+        for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
+            const message = await aiService.complete(messages, actionGateway.getTools());
+            if (!canReply()) return;
+            const calls = message.tool_calls || [];
+            if (calls.length === 0) return replyAiText(ctx, message.content);
+            if (calls.length > MAX_TOOL_CALLS) throw new Error('AI requested too many tools');
+            const writeCalls = calls.filter((call) => actionGateway.isWriteTool(call.function.name));
+            if (writeCalls.length > 1) {
+                return replyAiText(ctx, 'Mỗi lần chỉ được đề xuất một hành động ghi. Hãy yêu cầu từng thay đổi riêng và xác nhận lần lượt.');
+            }
+
+            messages.push(message);
+            let proposal = null;
+            for (const call of calls) {
+                let args;
+                try {
+                    args = JSON.parse(call.function.arguments || '{}');
+                } catch {
+                    messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ error: 'JSON arguments không hợp lệ' }) });
+                    continue;
+                }
+                try {
+                    if (actionGateway.isReadTool(call.function.name)) {
+                        const result = actionGateway.runRead(call.function.name, args);
+                        messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ ok: true, result }) });
+                    } else if (actionGateway.isWriteTool(call.function.name)) {
+                        proposal = actionGateway.prepare(call.function.name, args, adminId);
+                        messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ ok: true, pending_confirmation: proposal.id }) });
+                    } else {
+                        messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ error: 'Tool không nằm trong allowlist' }) });
+                    }
+                } catch (error) {
+                    messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ error: error.message }) });
+                }
+            }
+            if (proposal) return showProposal(ctx, proposal);
+        }
+        return replyAiText(ctx, 'AI đã dùng quá nhiều vòng công cụ. Hãy chia yêu cầu thành phần nhỏ hơn.');
     }
 
     async function answerPrompt(ctx, prompt, requireActive = false) {
@@ -38,12 +117,13 @@ function createAiController({
         requestRunning = true;
         try {
             await ctx.sendChatAction?.('typing');
-            const answer = await aiService.answer(prompt);
+            const answer = await runTools(
+                ctx,
+                prompt,
+                () => !requireActive || chatModeStore.isActive(adminId)
+            );
             if (requireActive && !chatModeStore.isActive(adminId)) return;
-            const reply = answer.length > MAX_TELEGRAM_LENGTH
-                ? `${answer.slice(0, MAX_TELEGRAM_LENGTH)}\n\n… (đã rút gọn)`
-                : answer;
-            return ctx.reply(reply);
+            return answer;
         } catch (error) {
             logger.error(`Admin AI request failed: ${error.message}`);
             if (requireActive && !chatModeStore.isActive(adminId)) return;
@@ -65,7 +145,7 @@ function createAiController({
         if (!prompt) {
             return ctx.reply(
                 '🤖 Dùng /ai câu hỏi, hoặc bấm “Chat với AI” để chuyển mọi tin nhắn text sang AI.\n\n' +
-                'AI hiện chỉ tư vấn cho admin, chưa có quyền đọc DB, chạy lệnh hoặc tự sửa cấu hình.\n' +
+                'AI có tool đọc dữ liệu đã lọc. Hành động ghi luôn hiện bản xem trước và chỉ chạy sau khi admin bấm Xác nhận.\n' +
                 `Hướng dẫn: ${AI_GUIDE_URL}`
             );
         }
@@ -107,7 +187,52 @@ function createAiController({
         return answerPrompt(ctx, text, true);
     }
 
-    return { command, startChat, stopChat, textMiddleware };
+    function applyInteraction(ctx, interaction) {
+        if (!interaction) return;
+        chatModeStore.setActive(adminId, false);
+        if (interaction.type === 'add_stock') {
+            ctx.session.navigation = { action: 'stock_data', productId: interaction.productId };
+        } else if (interaction.type === 'edit_stock') {
+            ctx.session.navigation = { action: 'edit_stock_data', stockId: interaction.stockId };
+        } else if (interaction.type === 'manual_delivery') {
+            require('../handlers/adminActions').setAdminState(adminId, {
+                action: 'deliver_order',
+                orderId: interaction.orderId,
+                userId: interaction.userId,
+                productName: interaction.productName,
+                quantity: interaction.quantity,
+            });
+        }
+    }
+
+    async function confirmAction(ctx) {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery?.('⛔ Bạn không có quyền.', { show_alert: true });
+        if (!actionGateway) return ctx.answerCbQuery?.('AI Action Gateway chưa sẵn sàng.', { show_alert: true });
+        await ctx.answerCbQuery?.('⏳ Đang xử lý...');
+        try {
+            const result = await actionGateway.confirm(ctx.match[1], adminId);
+            applyInteraction(ctx, result.interaction);
+            const backup = result.backupName ? `\nBackup: ${result.backupName}` : '';
+            return replyAiText(ctx, `✅ ${result.message}${backup}`);
+        } catch (error) {
+            logger.error(`AI action confirmation failed: ${error.message}`);
+            return replyAiText(ctx, `❌ Không thực hiện được: ${error.message}`);
+        }
+    }
+
+    async function cancelAction(ctx) {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery?.('⛔ Bạn không có quyền.', { show_alert: true });
+        if (!actionGateway) return ctx.answerCbQuery?.('AI Action Gateway chưa sẵn sàng.', { show_alert: true });
+        await ctx.answerCbQuery?.('Đã hủy');
+        try {
+            const result = actionGateway.cancel(ctx.match[1], adminId);
+            return replyAiText(ctx, `❌ ${result.message}`);
+        } catch (error) {
+            return replyAiText(ctx, `❌ Không hủy được: ${error.message}`);
+        }
+    }
+
+    return { cancelAction, command, confirmAction, startChat, stopChat, textMiddleware };
 }
 
 function createAiCommandHandler(options) {
@@ -117,11 +242,14 @@ function createAiCommandHandler(options) {
 
 function registerAiCommand(bot, controller) {
     bot.command('ai', controller.command);
+    bot.action(/^ai_action_confirm_([a-f0-9]{16})$/, controller.confirmAction);
+    bot.action(/^ai_action_cancel_([a-f0-9]{16})$/, controller.cancelAction);
 }
 
 module.exports = registerAiCommand;
 module.exports.createAiCommandHandler = createAiCommandHandler;
 module.exports.createAiController = createAiController;
 module.exports.getPrompt = getPrompt;
+module.exports.renderAiHtml = renderAiHtml;
 module.exports.START_AI_CHAT_LABEL = START_AI_CHAT_LABEL;
 module.exports.STOP_AI_CHAT_LABEL = STOP_AI_CHAT_LABEL;

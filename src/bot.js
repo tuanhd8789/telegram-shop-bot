@@ -11,6 +11,7 @@ const db = require('./database');
 const { createSessionMiddleware } = require('./session');
 const { createAiService } = require('./services/aiService');
 const { createAiChatModeStore } = require('./services/aiChatModeStore');
+const { createAiActionGateway } = require('./services/aiActionGateway');
 const { createAiController } = require('./commands/ai');
 
 const configErrors = validateConfig(config);
@@ -27,11 +28,18 @@ const aiService = config.AI.ENABLED ? createAiService({
     timeoutMs: config.AI.TIMEOUT_MS,
     maxTokens: config.AI.MAX_TOKENS,
 }) : null;
+const aiActionGateway = config.AI.ENABLED ? createAiActionGateway({
+    db,
+    config,
+    telegram: bot.telegram,
+    syncFromSheet: require('./services/sheetSync').syncFromSheet,
+}) : null;
 const aiController = createAiController({
     adminId: config.ADMIN_ID,
     enabled: config.AI.ENABLED,
     aiService,
     chatModeStore: createAiChatModeStore(db),
+    actionGateway: aiActionGateway,
 });
 const bankAccounts = [config.BANK.ACCOUNT, config.BANK2?.ACCOUNT].filter(Boolean);
 const sepayPaymentService = createSePayPaymentService({

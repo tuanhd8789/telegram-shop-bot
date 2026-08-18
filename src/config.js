@@ -34,7 +34,7 @@ module.exports = {
     SHOP_NAME: process.env.SHOP_NAME || 'Starizzi Shop',
     SUPPORT_CONTACT: process.env.SUPPORT_CONTACT || '@starizzi_support',
 
-    // Admin-only, read-only AI assistant
+    // Admin-only AI assistant with a confirmed safe-action allowlist
     AI: {
         ENABLED: String(process.env.AI_ENABLED || '').toLowerCase() === 'true',
         BASE_URL: process.env.AI_BASE_URL || '',

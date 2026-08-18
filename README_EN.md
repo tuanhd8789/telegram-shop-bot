@@ -169,7 +169,7 @@ npm start
 
 The bot registers a chat-scoped admin command menu for `ADMIN_ID`; other accounts only see customer commands. The admin must open a private chat with the bot and send `/start` at least once so Telegram can resolve the chat.
 
-The `/ai` assistant is currently read-only and has no tool access to modify the bot. The admin may press **Chat with AI** to route every text message to AI until **Stop AI chat** is pressed. See the [admin AI guide](docs/admin-ai.en.md).
+The `/ai` assistant can use privacy-filtered read tools and an allowlisted set of admin actions. Every mutation requires a time-limited **Confirm/Cancel** preview, is audited, and snapshots SQLite before database changes; stock secrets, customer identity, arbitrary SQL/shell, and deployments remain unavailable to AI. The admin may press **Chat with AI** to route every text message to AI until **Stop AI chat** is pressed. See the [admin AI guide](docs/admin-ai.en.md).
 
 ## 🧭 Persistent reply keyboard
 

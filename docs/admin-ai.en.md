@@ -1,14 +1,45 @@
-# Admin AI assistant
+# Action-capable admin AI
 
-## v1.8.0 scope
+## v1.9.0 scope
 
-Only the Telegram account whose ID matches `ADMIN_ID` may use `/ai <question>`. Other callers are rejected before the provider is contacted.
+Only the Telegram account matching `ADMIN_ID` can use `/ai` or **Chat with AI** mode. The model receives a fixed tool registry; it never receives arbitrary SQL, shell access, `.env`, tokens, secrets, or deployment access.
 
-Each question is independent. The AI receives no conversation history and has no tools, database access, shell, `.env` access, tokens, or permission to restart the bot.
+Read tools run immediately and return filtered data. Every mutation creates a preview with **Confirm/Cancel** buttons, expires after ten minutes, and changes nothing before confirmation. Requests and outcomes remain in the durable `ai_action_requests` audit log.
 
-The admin may press **🤖 Chat with AI**. From then on, every admin text message, including command-like text, is routed to AI. Press **🛑 Stop AI chat** to return to the normal bot flow. The enabled state is persisted in SQLite across bot restarts; conversation content is not stored.
+Conversation content is not stored. The chat-mode flag remains persistent across restarts.
 
-## Configuration
+## Business flow
+
+1. The admin describes a request.
+2. The provider selects an allowlisted tool with structured arguments.
+3. Read results are returned to the model so its answer is grounded.
+4. A write tool creates one preview and audit ID; only one mutation is allowed per request.
+5. Confirm/Cancel rechecks `ADMIN_ID`, expiry, ownership, and replay state.
+6. SQLite mutations create a `pre-ai-*.db` snapshot and run with transaction/foreign-key checks before the audit entry is completed.
+7. Stock content and manual-delivery data move to the bot's protected input flow with AI mode disabled, so those values never reach the provider.
+
+## Allowed capabilities
+
+Immediate reads cover shop statistics, categories, products, stock counts/IDs, privacy-filtered orders, and AI action history.
+
+Confirmed actions cover category and product CRUD with business constraints, unsold-stock deletion, protected stock add/edit handoffs, pending-order cancellation, confirmed order delivery, broadcast, and configured Google Sheet synchronization.
+
+Full bank details, `.env` changes, secrets, stock content, customer identity, arbitrary SQL/shell, and deployment remain forbidden. Shop name/support are environment-backed and read-only to AI; operators must use the normal configuration/deployment workflow to change them.
+
+## Examples
+
+```text
+Which Autodesk products are out of stock?
+Change product #9 price to 650000
+Disable product #10
+Open protected stock input for product #9
+Cancel order #123
+Broadcast “Maintenance starts at 22:00”
+```
+
+Reads return immediately. Mutations only run after the admin presses **Confirm**.
+
+## Provider configuration
 
 ```dotenv
 AI_ENABLED=true
@@ -20,42 +51,10 @@ AI_TIMEOUT_MS=45000
 AI_MAX_TOKENS=700
 ```
 
-If the provider does not run on the Docker host, replace `AI_BASE_URL` with the appropriate internal or public HTTPS URL. Keep the API key only in the server `.env` file with mode `600`.
+The provider must support OpenAI-compatible Chat Completions `tools` and `tool_calls`. Keep the key only in the server `.env` with mode `600`. For a provider in another Compose project, use the private-network override documented in `compose.ai-provider.yaml`.
 
-If the provider runs in another Docker Compose project, connect through its internal network instead of exposing the port to the Internet:
+## Recovery notes
 
-```dotenv
-AI_BASE_URL=http://provider-container:provider-port/v1
-AI_PROVIDER_NETWORK=provider_compose_network
-```
-
-```bash
-docker compose -f compose.yaml -f compose.ai-provider.yaml config --quiet
-docker compose -f compose.yaml -f compose.ai-provider.yaml up -d --build
-```
-
-## Current usage
-
-```text
-/ai Propose a new shop name and support message
-```
-
-The AI only returns a proposal. The admin reviews it and applies it with the existing administration commands.
-
-To avoid typing `/ai` before every question, press **Chat with AI**, send normal text messages, and then press **Stop AI chat**.
-
-## Safe self-configuration design for a later phase
-
-The model must never receive direct shell or database access. The bot will expose only a narrow action allowlist such as `set_shop_name`, `set_support_contact`, `set_product_active`, and `set_product_price`.
-
-Every write must follow this flow:
-
-1. AI produces a structured proposal.
-2. The backend validates authorization, types, and business limits.
-3. The bot shows a preview/diff and an expiring request ID.
-4. The admin explicitly confirms; the bot backs up before a transactional write.
-5. The bot records an audit event, runs a health check, and automatically rolls back on failure.
-
-Secrets, bot tokens, complete bank details, customer data, arbitrary shell, and arbitrary SQL remain outside the allowlist.
-
-This design follows OpenAI's [Chat Completions API](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create), [function calling](https://developers.openai.com/api/docs/guides/function-calling), and [safety best practices](https://developers.openai.com/api/docs/guides/safety-best-practices).
+- Pending requests expire after ten minutes and cannot be replayed.
+- Database snapshots live in the backup volume; follow [the recovery guide](../DEPLOYMENT_EN.md#6-backup-and-restore) for manual restoration.
+- External side effects such as delivered broadcasts cannot be recalled by restoring SQLite, so review their previews carefully.

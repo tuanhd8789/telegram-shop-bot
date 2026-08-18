@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented here.
 
+## [1.9.0] - 2026-08-18
+
+### Added
+
+- OpenAI-compatible function calling with privacy-filtered read tools for shop, product, stock, order, and audit data.
+- A durable `ai_action_requests` confirmation/audit ledger with ten-minute expiry, ownership checks, replay protection, and Confirm/Cancel callbacks.
+- Confirmed category/product/stock/order/broadcast/Sheet actions, including protected non-AI handoffs for stock and manual-delivery content.
+- Pre-action SQLite snapshots and foreign-key checks for database mutations.
+
+### Changed
+
+- Render bounded AI Markdown emphasis/code safely as Telegram HTML instead of displaying raw `**` markers.
+- Upgrade the admin AI from advisory-only responses to grounded reads and explicitly confirmed actions.
+
+### Security
+
+- Keep stock content, customer identity, payment codes, bank details, `.env`, secrets, arbitrary SQL/shell, and deployment outside the AI tool surface.
+- Require `ADMIN_ID` at proposal execution time and reject expired, cancelled, cross-admin, or replayed action callbacks.
+
 ## [1.8.0] - 2026-08-18
 
 ### Added
