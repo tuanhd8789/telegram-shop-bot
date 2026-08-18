@@ -40,8 +40,9 @@ test('customer categories use a two-column grid with refresh and back rows', () 
         categories.map((category) => `nav_category_${category.id}`)
     );
     assert.equal(rows[0][0].icon_custom_emoji_id, '5916038376150011838');
+    assert.equal(rows[0][0].text, '🟢 Category 1');
     assert.deepEqual(rows.slice(0, 4).flat().map((button) => button.style), [
-        'success', 'danger', 'success', 'danger', 'success', 'danger', 'success',
+        undefined, 'danger', undefined, 'danger', undefined, 'danger', undefined,
     ]);
     assert.deepEqual(rows.at(-2).map((button) => button.text), ['🔄 Làm mới']);
     assert.deepEqual(rows.at(-1).map((button) => button.text), ['↩️ Quay lại']);
