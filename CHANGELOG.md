@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [1.14.4] - 2026-08-19
+
+### Changed
+
+- Render in-stock category and product buttons with Telegram's neutral default background plus a compact `🟢` status marker, reducing the solid green area while preserving availability at a glance.
+- Keep out-of-stock buttons on the red `danger` style and contact-only products neutral.
+
 ## [1.14.3] - 2026-08-19
 
 ### Fixed

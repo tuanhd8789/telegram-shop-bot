@@ -23,6 +23,7 @@
 - 2026-08-18 — Fail-safe custom emoji rendering for malformed legacy IDs. Fixed in [v1.14.1](CHANGELOG.md#1141---2026-08-18).
 - 2026-08-19 — Bounded automatic retry for transient AI provider rate limits and outages. Fixed in [v1.14.2](CHANGELOG.md#1142---2026-08-19).
 - 2026-08-19 — Compatibility normalization for provider-injected tool metadata without weakening the AI action allowlist. Fixed in [v1.14.3](CHANGELOG.md#1143---2026-08-19).
+- 2026-08-19 — Subtle in-stock category/product buttons using a neutral background and compact green status marker. Adjusted in [v1.14.4](CHANGELOG.md#1144---2026-08-19).
 
 ## Next
 
