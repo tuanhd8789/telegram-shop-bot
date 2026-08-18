@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## [1.10.0] - 2026-08-18
+
+### Added
+
+- A dedicated **Admin → Category management** menu with create, rename, hide/show, list, and delete buttons.
+- Persistent category visibility state so hidden categories stay available to administrators for later restoration.
+
+### Changed
+
+- Hide inactive categories from the customer category menu while preserving their products and order history.
+
+### Security
+
+- Restrict every category-management callback to `ADMIN_ID`; permanent deletion requires explicit confirmation and is allowed only for empty categories.
+
 ## [1.9.1] - 2026-08-18
 
 ### Fixed

@@ -1,11 +1,14 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const config = require('../src/config');
+const db = require('../src/database');
+const productService = require('../src/services/productService');
 const {
     registerNavigation,
     replyMenuKeyboard,
     adminMenuKeyboard,
     adminProductMenuKeyboard,
+    adminCategoryMenuKeyboard,
     stockItemsKeyboard,
     CUSTOMER_REPLY_LABELS,
     ADMIN_REPLY_LABELS,
@@ -58,6 +61,115 @@ test('admin reply keyboard keeps customer actions above admin actions', () => {
     const productLabels = labels(adminProductMenuKeyboard());
     for (const label of ['📦 Tất cả sản phẩm', '➕ Tạo sản phẩm', '💵 Sửa giá', '✏️ Sửa tên', '🔁 Bật/tắt', '🗑 Xóa']) {
         assert.ok(productLabels.includes(label));
+    }
+
+    const categoryLabels = labels(adminCategoryMenuKeyboard());
+    for (const label of ['➕ Tạo danh mục', '✏️ Đổi tên danh mục', '🙈 Ẩn/hiện danh mục', '🗑 Xóa danh mục']) {
+        assert.ok(categoryLabels.includes(label));
+    }
+});
+
+test('admin category buttons rename, hide/show and safely delete empty categories', async () => {
+    const registrations = [];
+    let textHandler;
+    const bot = {
+        action(trigger, handler) { registrations.push({ trigger, handler }); },
+        on(type, handler) { if (type === 'text') textHandler = handler; },
+        telegram: { sendMessage: async () => {} },
+    };
+    registerNavigation(bot);
+
+    function findAction(callback) {
+        for (const registration of registrations) {
+            if (registration.trigger === callback) return { handler: registration.handler, match: [callback] };
+            if (registration.trigger instanceof RegExp) {
+                const match = callback.match(registration.trigger);
+                if (match) return { handler: registration.handler, match };
+            }
+        }
+        assert.fail(`Missing action handler for ${callback}`);
+    }
+
+    function callbackContext(callback, userId = 5487392216, session = {}) {
+        const replies = [];
+        const answers = [];
+        const action = findAction(callback);
+        return {
+            ctx: {
+                from: { id: userId },
+                session,
+                match: action.match,
+                answerCbQuery: (...args) => { answers.push(args); },
+                reply: (...args) => { replies.push(args); },
+                replyWithHTML: (...args) => { replies.push(args); },
+            },
+            handler: action.handler,
+            replies,
+            answers,
+        };
+    }
+
+    const originalAdminId = config.ADMIN_ID;
+    config.ADMIN_ID = 5487392216;
+    db.exec('BEGIN');
+    try {
+        const categoryId = Number(db.prepare(
+            'INSERT INTO categories (name, emoji, sort_order) VALUES (?, ?, ?)'
+        ).run('Category UI test', '📂', 9998).lastInsertRowid);
+
+        const renameSession = {};
+        const rename = callbackContext(`nav_category_edit_name_${categoryId}`, config.ADMIN_ID, renameSession);
+        await rename.handler(rename.ctx);
+        assert.deepEqual(renameSession.navigation, { action: 'edit_category_name', categoryId });
+
+        const renameReplies = [];
+        await textHandler({
+            from: { id: config.ADMIN_ID },
+            session: renameSession,
+            message: { text: 'Category renamed & safe' },
+            reply: (...args) => { renameReplies.push(args); },
+            replyWithHTML: (...args) => { renameReplies.push(args); },
+        }, () => assert.fail('rename reached next middleware'));
+        assert.equal(productService.getCategoryById(categoryId).name, 'Category renamed & safe');
+        assert.match(renameReplies[0][0], /Category renamed &amp; safe/);
+
+        const hide = callbackContext(`nav_category_toggle_${categoryId}`);
+        await hide.handler(hide.ctx);
+        assert.equal(productService.getCategoryById(categoryId).is_active, 0);
+        assert.equal(productService.getCategories().some((item) => item.id === categoryId), false);
+        assert.equal(productService.getCategories({ includeInactive: true }).some((item) => item.id === categoryId), true);
+
+        const show = callbackContext(`nav_category_toggle_${categoryId}`);
+        await show.handler(show.ctx);
+        assert.equal(productService.getCategoryById(categoryId).is_active, 1);
+
+        const productId = Number(db.prepare(
+            'INSERT INTO products (category_id, name, price) VALUES (?, ?, ?)'
+        ).run(categoryId, 'Protected category product', 1000).lastInsertRowid);
+        const blockedDelete = callbackContext(`nav_category_delete_${categoryId}`);
+        await blockedDelete.handler(blockedDelete.ctx);
+        assert.match(blockedDelete.answers[0][0], /còn 1 sản phẩm/);
+        assert.ok(productService.getCategoryById(categoryId));
+        db.prepare('DELETE FROM products WHERE id = ?').run(productId);
+
+        const confirmPrompt = callbackContext(`nav_category_delete_${categoryId}`);
+        await confirmPrompt.handler(confirmPrompt.ctx);
+        assert.match(confirmPrompt.replies[0][0], /Xóa vĩnh viễn/);
+        assert.equal(
+            confirmPrompt.replies[0][1].reply_markup.inline_keyboard[0][0].callback_data,
+            `nav_category_delete_confirm_${categoryId}`
+        );
+
+        const nonAdmin = callbackContext(`nav_category_delete_confirm_${categoryId}`, 12345);
+        await nonAdmin.handler(nonAdmin.ctx);
+        assert.ok(productService.getCategoryById(categoryId));
+
+        const confirmedDelete = callbackContext(`nav_category_delete_confirm_${categoryId}`);
+        await confirmedDelete.handler(confirmedDelete.ctx);
+        assert.equal(productService.getCategoryById(categoryId), undefined);
+    } finally {
+        db.exec('ROLLBACK');
+        config.ADMIN_ID = originalAdminId;
     }
 });
 

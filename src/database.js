@@ -30,7 +30,8 @@ db.exec(`
     emoji TEXT DEFAULT '📦',
     custom_emoji_id TEXT,
     sort_order INTEGER DEFAULT 0,
-    image_url TEXT
+    image_url TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))
   );
 
   CREATE TABLE IF NOT EXISTS products (
@@ -151,6 +152,7 @@ try { db.exec('ALTER TABLE products ADD COLUMN custom_emoji_id TEXT'); } catch (
 try { db.exec('ALTER TABLE stock ADD COLUMN sold_order_id INTEGER'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE categories ADD COLUMN image_url TEXT'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE categories ADD COLUMN custom_emoji_id TEXT'); } catch (e) { /* already exists */ }
+try { db.exec('ALTER TABLE categories ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE payment_transactions ADD COLUMN topup_id INTEGER'); } catch (e) { /* already exists */ }
 
 // Seed data - only if categories table is empty

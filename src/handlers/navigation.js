@@ -97,7 +97,7 @@ function adminMenuKeyboard() {
             Markup.button.callback(STOP_AI_CHAT_LABEL, 'nav_admin_ai_stop'),
         ],
         [Markup.button.callback('📦 Tất cả sản phẩm', 'adm_products'), Markup.button.callback('➕ Tạo sản phẩm', 'nav_admin_add_product')],
-        [Markup.button.callback('🗂 Danh mục', 'nav_admin_categories'), Markup.button.callback('➕ Tạo danh mục', 'nav_admin_add_category')],
+        [Markup.button.callback('🗂 Quản lý danh mục', 'nav_admin_category_menu'), Markup.button.callback('➕ Tạo danh mục', 'nav_admin_add_category')],
         [Markup.button.callback('📥 Thêm kho', 'nav_admin_add_stock'), Markup.button.callback('👁 Xem kho', 'nav_admin_view_stock')],
         [Markup.button.callback('⏳ Đơn chờ', 'adm_pending'), Markup.button.callback('📋 Đơn hàng', 'nav_admin_orders')],
         [Markup.button.callback('📊 Thống kê', 'adm_stats'), Markup.button.callback('👥 Người dùng', 'nav_admin_users')],
@@ -119,8 +119,11 @@ function adminProductMenuKeyboard() {
 
 function adminCategoryMenuKeyboard() {
     return Markup.inlineKeyboard([
-        [Markup.button.callback('🗂 Xem danh mục', 'nav_admin_categories')],
         [Markup.button.callback('➕ Tạo danh mục', 'nav_admin_add_category')],
+        [Markup.button.callback('✏️ Đổi tên danh mục', 'nav_admin_edit_category_name')],
+        [Markup.button.callback('🙈 Ẩn/hiện danh mục', 'nav_admin_toggle_category')],
+        [Markup.button.callback('🗑 Xóa danh mục', 'nav_admin_delete_category')],
+        [Markup.button.callback('🗂 Xem danh mục', 'nav_admin_categories')],
         [Markup.button.callback('↩️ Quản trị', 'nav_admin')],
     ]);
 }
@@ -141,6 +144,21 @@ function productPicker(prefix, title) {
     ]);
     rows.push([Markup.button.callback('↩️ Quản trị', 'nav_admin')]);
     return { text: title, keyboard: Markup.inlineKeyboard(rows) };
+}
+
+function categoryPicker(prefix, title) {
+    const categories = productService.getCategories({ includeInactive: true });
+    const rows = categories.map((category) => [
+        Markup.button.callback(
+            `${category.is_active ? '🟢' : '🙈'} #${category.id} ${category.name} (${category.product_count} SP)`,
+            `${prefix}_${category.id}`
+        ),
+    ]);
+    rows.push([Markup.button.callback('↩️ Quản lý danh mục', 'nav_admin_category_menu')]);
+    return {
+        text: categories.length ? title : '🗂 Chưa có danh mục.',
+        keyboard: Markup.inlineKeyboard(rows),
+    };
 }
 
 function showAdminProductMenu(ctx) {
@@ -175,11 +193,12 @@ function showCustomerOrders(ctx) {
 }
 
 function showAdminCategories(ctx) {
-    const categories = productService.getCategories();
+    const categories = productService.getCategories({ includeInactive: true });
     return ctx.replyWithHTML(categories.map((item) =>
-        `<b>#${item.id}</b> ${customEmojiHtml(item.custom_emoji_id, item.emoji || '📂')} ${escapeHtml(item.name)}` +
+        `${item.is_active ? '🟢' : '🙈'} <b>#${item.id}</b> ${customEmojiHtml(item.custom_emoji_id, item.emoji || '📂')} ${escapeHtml(item.name)}` +
+        ` — ${item.product_count} sản phẩm` +
         `${item.image_url ? '\n   🖼 ' + escapeHtml(item.image_url) : ''}`
-    ).join('\n'));
+    ).join('\n') || '🗂 Chưa có danh mục.');
 }
 
 function beginAddStock(ctx) {
@@ -433,6 +452,11 @@ function registerNavigation(bot, { aiController } = {}) {
         return ctx.replyWithHTML(`🗑 Đã xóa <b>${product.name}</b>.`);
     });
 
+    bot.action('nav_admin_category_menu', (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        return showAdminCategoryMenu(ctx);
+    });
     bot.action('nav_admin_categories', (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
         ctx.answerCbQuery();
@@ -443,6 +467,83 @@ function registerNavigation(bot, { aiController } = {}) {
         ctx.answerCbQuery();
         ctx.session.navigation = { action: 'category_name' };
         return ctx.reply('➕ Gửi tên danh mục mới. Gõ /cancel để hủy.');
+    });
+    bot.action('nav_admin_edit_category_name', (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        const picker = categoryPicker('nav_category_edit_name', '✏️ Chọn danh mục cần đổi tên:');
+        return ctx.reply(picker.text, picker.keyboard);
+    });
+    bot.action(/^nav_category_edit_name_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        const category = productService.getCategoryById(Number(ctx.match[1]));
+        if (!category) return ctx.answerCbQuery('❌ Danh mục không tồn tại');
+        ctx.answerCbQuery();
+        ctx.session.navigation = { action: 'edit_category_name', categoryId: category.id };
+        return ctx.replyWithHTML(`✏️ Gửi tên mới cho danh mục <b>${escapeHtml(category.name)}</b>. Gõ /cancel để hủy.`);
+    });
+    bot.action('nav_admin_toggle_category', (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        const picker = categoryPicker('nav_category_toggle', '🙈 Chọn danh mục cần ẩn/hiện:');
+        return ctx.reply(picker.text, picker.keyboard);
+    });
+    bot.action(/^nav_category_toggle_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        const category = productService.getCategoryById(Number(ctx.match[1]));
+        if (!category) return ctx.answerCbQuery('❌ Danh mục không tồn tại');
+        const active = category.is_active ? 0 : 1;
+        const result = db.prepare('UPDATE categories SET is_active = ? WHERE id = ? AND is_active = ?')
+            .run(active, category.id, category.is_active);
+        if (result.changes !== 1) return ctx.answerCbQuery('❌ Danh mục đã thay đổi, vui lòng tải lại', { show_alert: true });
+        ctx.answerCbQuery(active ? '🟢 Đã hiện danh mục' : '🙈 Đã ẩn danh mục');
+        return ctx.replyWithHTML(
+            `${active ? '🟢 Đã hiện' : '🙈 Đã ẩn'} danh mục <b>${escapeHtml(category.name)}</b>.` +
+            (active ? '' : '\nSản phẩm và lịch sử đơn hàng vẫn được giữ nguyên.'),
+            Markup.inlineKeyboard([[Markup.button.callback('↩️ Quản lý danh mục', 'nav_admin_category_menu')]])
+        );
+    });
+    bot.action('nav_admin_delete_category', (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        const picker = categoryPicker('nav_category_delete', '🗑 Chọn danh mục rỗng cần xóa:');
+        return ctx.reply(picker.text, picker.keyboard);
+    });
+    bot.action(/^nav_category_delete_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        const category = productService.getCategoryById(Number(ctx.match[1]));
+        if (!category) return ctx.answerCbQuery('❌ Danh mục không tồn tại');
+        if (category.product_count > 0) {
+            return ctx.answerCbQuery(
+                `Danh mục còn ${category.product_count} sản phẩm. Hãy ẩn danh mục hoặc chuyển/xóa sản phẩm trước.`,
+                { show_alert: true }
+            );
+        }
+        ctx.answerCbQuery();
+        return ctx.replyWithHTML(
+            `⚠️ Xóa vĩnh viễn danh mục <b>#${category.id} ${escapeHtml(category.name)}</b>?`,
+            Markup.inlineKeyboard([[
+                Markup.button.callback('🗑 Xác nhận xóa', `nav_category_delete_confirm_${category.id}`),
+                Markup.button.callback('❌ Hủy', 'nav_admin_category_menu'),
+            ]])
+        );
+    });
+    bot.action(/^nav_category_delete_confirm_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        const category = productService.getCategoryById(Number(ctx.match[1]));
+        if (!category) return ctx.answerCbQuery('❌ Danh mục không tồn tại');
+        const result = db.prepare(`
+            DELETE FROM categories
+            WHERE id = ? AND NOT EXISTS (SELECT 1 FROM products WHERE category_id = ?)
+        `).run(category.id, category.id);
+        if (result.changes !== 1) {
+            return ctx.answerCbQuery('Không thể xóa: danh mục vừa có sản phẩm hoặc đã thay đổi.', { show_alert: true });
+        }
+        ctx.answerCbQuery('🗑 Đã xóa danh mục');
+        return ctx.replyWithHTML(
+            `🗑 Đã xóa danh mục <b>${escapeHtml(category.name)}</b>.`,
+            Markup.inlineKeyboard([[Markup.button.callback('↩️ Quản lý danh mục', 'nav_admin_category_menu')]])
+        );
     });
     bot.action('nav_admin_add_product', (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
@@ -643,7 +744,26 @@ function registerNavigation(bot, { aiController } = {}) {
             const result = db.prepare('INSERT INTO categories (name, emoji, sort_order, image_url) VALUES (?, ?, ?, ?)')
                 .run(state.name.slice(0, 100), emoji, sortOrder, imageUrl);
             delete ctx.session.navigation;
-            return ctx.replyWithHTML(`✅ Đã tạo danh mục <b>#${result.lastInsertRowid}</b>: ${emoji} ${state.name}`);
+            return ctx.replyWithHTML(
+                `✅ Đã tạo danh mục <b>#${result.lastInsertRowid}</b>: ${emoji} ${escapeHtml(state.name.slice(0, 100))}`,
+                Markup.inlineKeyboard([[Markup.button.callback('↩️ Quản lý danh mục', 'nav_admin_category_menu')]])
+            );
+        }
+        if (state.action === 'edit_category_name') {
+            const category = productService.getCategoryById(state.categoryId);
+            if (!category) {
+                delete ctx.session.navigation;
+                return ctx.reply('❌ Danh mục không tồn tại.');
+            }
+            const name = text.slice(0, 100);
+            if (!name) return ctx.reply('❌ Tên danh mục không được để trống.');
+            const result = db.prepare('UPDATE categories SET name = ? WHERE id = ?').run(name, category.id);
+            delete ctx.session.navigation;
+            if (result.changes !== 1) return ctx.reply('❌ Không thể đổi tên danh mục; vui lòng tải lại.');
+            return ctx.replyWithHTML(
+                `✅ Đã đổi tên <b>${escapeHtml(category.name)}</b> → <b>${escapeHtml(name)}</b>.`,
+                Markup.inlineKeyboard([[Markup.button.callback('↩️ Quản lý danh mục', 'nav_admin_category_menu')]])
+            );
         }
         if (state.action === 'product_name') {
             ctx.session.navigation = { ...state, action: 'product_price', name: text };

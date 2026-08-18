@@ -52,8 +52,25 @@ const productService = {
     /**
      * Get all categories
      */
-    getCategories() {
-        return db.prepare('SELECT * FROM categories ORDER BY sort_order').all();
+    getCategories({ includeInactive = false } = {}) {
+        return db.prepare(`
+            SELECT c.*,
+              (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) product_count
+            FROM categories c
+            WHERE (? = 1 OR c.is_active = 1)
+            ORDER BY c.sort_order, c.id
+        `).all(includeInactive ? 1 : 0);
+    },
+
+    /**
+     * Get one category for admin workflows, including hidden categories.
+     */
+    getCategoryById(id) {
+        return db.prepare(`
+            SELECT c.*,
+              (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) product_count
+            FROM categories c WHERE c.id = ?
+        `).get(id);
     },
 
     /**

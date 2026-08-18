@@ -14,6 +14,7 @@
 - 2026-08-17 — Admin-only, read-only AI assistant with a validated OpenAI-compatible provider configuration. Implemented in [v1.7.0](CHANGELOG.md#170---2026-08-17).
 - 2026-08-18 — Persistent admin AI chat mode with explicit start/stop controls and a simplified customer keyboard. Implemented in [v1.8.0](CHANGELOG.md#180---2026-08-18).
 - 2026-08-18 — Controlled AI administration with function calling, privacy-filtered reads, preview/confirmation, audit, backup, protected secret handoffs, and replay protection. Implemented in [v1.9.0](CHANGELOG.md#190---2026-08-18).
+- 2026-08-18 — Dedicated administrator category management with create, rename, reversible visibility, and safe empty-category deletion. Implemented in [v1.10.0](CHANGELOG.md#1100---2026-08-18).
 
 ## Next
 
