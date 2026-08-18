@@ -61,6 +61,7 @@ test('category availability follows active local and sheet stock', () => {
         db.prepare('UPDATE products SET sheet_stock = 2 WHERE id = ?').run(productId);
         assert.equal(productService.getCategories({ includeInactive: true })
             .find((category) => category.id === categoryId).has_stock, 1);
+        assert.equal(productService.getByCategory(categoryId)[0].display_stock, 2);
 
         db.prepare('UPDATE products SET sheet_stock = 0 WHERE id = ?').run(productId);
         db.prepare('INSERT INTO stock (product_id, data) VALUES (?, ?)').run(productId, 'available');
@@ -114,12 +115,12 @@ test('admin reply keyboard keeps customer actions above admin actions', () => {
     );
 
     const productLabels = labels(adminProductMenuKeyboard());
-    for (const label of ['📦 Tất cả sản phẩm', '➕ Tạo sản phẩm', '💵 Sửa giá', '✏️ Sửa tên', '🔁 Bật/tắt', '🗑 Xóa']) {
+    for (const label of ['📦 Tất cả sản phẩm', '➕ Tạo sản phẩm', '💵 Sửa giá', '✏️ Sửa tên & icon', '🔁 Bật/tắt', '🗑 Xóa']) {
         assert.ok(productLabels.includes(label));
     }
 
     const categoryLabels = labels(adminCategoryMenuKeyboard());
-    for (const label of ['➕ Tạo danh mục', '✏️ Đổi tên danh mục', '🙈 Ẩn/hiện danh mục', '🗑 Xóa danh mục']) {
+    for (const label of ['➕ Tạo danh mục', '✏️ Sửa tên & icon', '🙈 Ẩn/hiện danh mục', '🗑 Xóa danh mục']) {
         assert.ok(categoryLabels.includes(label));
     }
 
@@ -256,8 +257,34 @@ test('admin category buttons rename, hide/show and safely delete empty categorie
             reply: (...args) => { renameReplies.push(args); },
             replyWithHTML: (...args) => { renameReplies.push(args); },
         }, () => assert.fail('rename reached next middleware'));
-        assert.equal(productService.getCategoryById(categoryId).name, 'Category renamed & safe');
-        assert.match(renameReplies[0][0], /Category renamed &amp; safe/);
+        assert.deepEqual(renameSession.navigation, {
+            action: 'edit_category_custom_emoji',
+            categoryId,
+            name: 'Category renamed & safe',
+        });
+        assert.equal(productService.getCategoryById(categoryId).name, 'Category UI test');
+
+        await textHandler({
+            from: { id: config.ADMIN_ID },
+            session: renameSession,
+            message: { text: 'not-an-id' },
+            reply: (...args) => { renameReplies.push(args); },
+        }, () => assert.fail('invalid icon reached next middleware'));
+        assert.equal(productService.getCategoryById(categoryId).name, 'Category UI test');
+        assert.equal(renameSession.navigation.action, 'edit_category_custom_emoji');
+
+        await textHandler({
+            from: { id: config.ADMIN_ID },
+            session: renameSession,
+            message: { text: '5879540508572783398' },
+            reply: (...args) => { renameReplies.push(args); },
+            replyWithHTML: (...args) => { renameReplies.push(args); },
+        }, () => assert.fail('category icon reached next middleware'));
+        const renamedCategory = productService.getCategoryById(categoryId);
+        assert.equal(renamedCategory.name, 'Category renamed & safe');
+        assert.equal(renamedCategory.custom_emoji_id, '5879540508572783398');
+        assert.equal(renameSession.navigation, undefined);
+        assert.match(renameReplies.at(-1)[0], /Category renamed &amp; safe/);
 
         const hide = callbackContext(`nav_category_toggle_${categoryId}`);
         await hide.handler(hide.ctx);
@@ -272,6 +299,40 @@ test('admin category buttons rename, hide/show and safely delete empty categorie
         const productId = Number(db.prepare(
             'INSERT INTO products (category_id, name, price) VALUES (?, ?, ?)'
         ).run(categoryId, 'Protected category product', 1000).lastInsertRowid);
+
+        const productRenameSession = {};
+        const productRename = callbackContext(`nav_edit_name_${productId}`, config.ADMIN_ID, productRenameSession);
+        await productRename.handler(productRename.ctx);
+        assert.deepEqual(productRenameSession.navigation, { action: 'edit_product_name', productId });
+
+        const productRenameReplies = [];
+        await textHandler({
+            from: { id: config.ADMIN_ID },
+            session: productRenameSession,
+            message: { text: 'Product renamed & safe' },
+            reply: (...args) => { productRenameReplies.push(args); },
+            replyWithHTML: (...args) => { productRenameReplies.push(args); },
+        }, () => assert.fail('product rename reached next middleware'));
+        assert.deepEqual(productRenameSession.navigation, {
+            action: 'edit_product_custom_emoji',
+            productId,
+            name: 'Product renamed & safe',
+        });
+        assert.equal(productService.getById(productId).name, 'Protected category product');
+
+        await textHandler({
+            from: { id: config.ADMIN_ID },
+            session: productRenameSession,
+            message: { text: '5916038376150011838' },
+            reply: (...args) => { productRenameReplies.push(args); },
+            replyWithHTML: (...args) => { productRenameReplies.push(args); },
+        }, () => assert.fail('product icon reached next middleware'));
+        const renamedProduct = productService.getById(productId);
+        assert.equal(renamedProduct.name, 'Product renamed & safe');
+        assert.equal(renamedProduct.custom_emoji_id, '5916038376150011838');
+        assert.equal(productRenameSession.navigation, undefined);
+        assert.match(productRenameReplies.at(-1)[0], /Product renamed &amp; safe/);
+
         const blockedDelete = callbackContext(`nav_category_delete_${categoryId}`);
         await blockedDelete.handler(blockedDelete.ctx);
         assert.match(blockedDelete.answers[0][0], /còn 1 sản phẩm/);

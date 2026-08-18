@@ -16,3 +16,19 @@ The supplied packs do not contain separate official AutoCAD, Revit, 3ds Max, or 
 ## Updating an icon
 
 Store the numeric document ID in `products.custom_emoji_id`. Invalid or empty values are ignored by the renderer, so the product button remains usable without a custom icon. Test every new ID through the bot before applying it to production because Telegram can reject unavailable or unauthorized custom emoji IDs.
+
+Administrators can update either a category or product from its management menu:
+
+1. Select **Edit name & icon** and enter the new name.
+2. Enter the numeric custom emoji document ID. Send `-` to remove the custom icon.
+
+The bot validates the ID and saves the name and icon together after step 2. An invalid ID leaves the edit session open and does not partially rename the record.
+
+## Hướng dẫn nhanh
+
+Trong menu quản trị danh mục hoặc sản phẩm, chọn **Sửa tên & icon**:
+
+1. Nhập tên mới.
+2. Nhập ID custom emoji chỉ gồm chữ số; gửi `-` nếu muốn bỏ icon.
+
+Tên và icon chỉ được lưu cùng lúc sau khi bước 2 hợp lệ. Nút sản phẩm còn hàng hiển thị màu xanh, hết hàng hiển thị màu đỏ; sản phẩm chỉ liên hệ không bị gán nhầm là hết hàng.

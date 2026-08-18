@@ -42,7 +42,12 @@ const productService = {
     getByCategory(categoryId) {
         return db.prepare(`
       SELECT p.*,
-        (SELECT COUNT(*) FROM stock s WHERE s.product_id = p.id AND s.is_sold = 0) as stock_count
+        (SELECT COUNT(*) FROM stock s WHERE s.product_id = p.id AND s.is_sold = 0) as stock_count,
+        CASE
+          WHEN (SELECT COUNT(*) FROM stock s WHERE s.product_id = p.id AND s.is_sold = 0) > 0
+          THEN (SELECT COUNT(*) FROM stock s WHERE s.product_id = p.id AND s.is_sold = 0)
+          ELSE COALESCE(p.sheet_stock, 0)
+        END as display_stock
       FROM products p
       WHERE p.category_id = ? AND p.is_active = 1
       ORDER BY p.id

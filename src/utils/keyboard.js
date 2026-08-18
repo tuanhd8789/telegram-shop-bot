@@ -14,7 +14,9 @@ function productListKeyboard(products) {
             label += ` | ${p.promotion}`;
         }
 
-        return [callbackWithCustomEmoji(label, `product_${p.id}`, p.custom_emoji_id)];
+        const button = callbackWithCustomEmoji(label, `product_${p.id}`, p.custom_emoji_id);
+        if (!p.contact_only || stock > 0) button.style = stock > 0 ? 'success' : 'danger';
+        return [button];
     });
 
     buttons.push([Markup.button.callback('🔄 Làm mới', 'refresh_products')]);

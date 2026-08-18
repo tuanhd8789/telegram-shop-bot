@@ -17,6 +17,7 @@ test('product buttons show price, stock and app name in that order with a custom
     assert.equal(button.text, '600.000đ | 34 | Autodesk Full App 1 năm chính chủ');
     assert.equal(button.callback_data, 'product_9');
     assert.equal(button.icon_custom_emoji_id, '5916038376150011838');
+    assert.equal(button.style, 'success');
 });
 
 test('contact-only products keep the same column order', () => {
@@ -32,4 +33,18 @@ test('contact-only products keep the same column order', () => {
     const button = keyboard.reply_markup.inline_keyboard[0][0];
     assert.equal(button.text, '300.000đ | Liên hệ | AutoCAD LT');
     assert.equal(button.icon_custom_emoji_id, undefined);
+    assert.equal(button.style, undefined);
+});
+
+test('out-of-stock product buttons are red', () => {
+    const keyboard = productListKeyboard([{
+        id: 11,
+        name: 'Microsoft 365',
+        price: 250000,
+        stock_count: 0,
+    }]);
+
+    const button = keyboard.reply_markup.inline_keyboard[0][0];
+    assert.equal(button.text, '250.000đ | 0 | Microsoft 365');
+    assert.equal(button.style, 'danger');
 });
