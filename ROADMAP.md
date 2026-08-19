@@ -2,6 +2,8 @@
 
 ## Delivered
 
+- 2026-08-19 — Neutral in-stock category buttons without the green status dot. Adjusted in [v1.16.1](CHANGELOG.md#1161---2026-08-19).
+
 - 2026-08-19 — Two-level categories, administrator display ordering, configurable hot products, and atomically fulfilled product combos. Implemented in [v1.16.0](CHANGELOG.md#1160---2026-08-19).
 
 - 2026-08-14 — Secure, reproducible container deployment, health checks, CI, and automatic SQLite backups. Implemented in [v1.1.0](CHANGELOG.md#110---2026-08-14).

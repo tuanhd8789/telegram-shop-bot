@@ -96,11 +96,10 @@ function categoriesKeyboard(categories = productService.getRootCategories()) {
     }
     for (let index = 0; index < categories.length; index += CATEGORY_GRID_COLUMNS) {
         rows.push(categories.slice(index, index + CATEGORY_GRID_COLUMNS).map((category) => {
-            const availability = category.has_stock ? '🟢 ' : '';
             const button = callbackWithCustomEmoji(
                 category.custom_emoji_id
-                    ? `${availability}${category.name}`
-                    : `${availability}${category.emoji || '📂'} ${category.name}`,
+                    ? category.name
+                    : `${category.emoji || '📂'} ${category.name}`,
                 `nav_category_${category.id}`,
                 category.custom_emoji_id
             );

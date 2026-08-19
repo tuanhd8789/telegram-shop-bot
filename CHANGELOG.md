@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.16.1] - 2026-08-19
+
+### Changed
+
+- Remove the green in-stock dot from category buttons so category custom icons remain visually dominant; out-of-stock categories remain red.
+
 ## [1.16.0] - 2026-08-19
 
 ### Added
