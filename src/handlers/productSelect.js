@@ -4,9 +4,26 @@ const { quantityKeyboard } = require('../utils/keyboard');
 const config = require('../config');
 const { Markup } = require('telegraf');
 
+async function replyProductCard(ctx, product, text, keyboard) {
+    if (!product.public_image_file_id) return ctx.replyWithHTML(text, keyboard);
+    try {
+        if (text.length > 900) {
+            await ctx.replyWithPhoto(product.public_image_file_id);
+            return ctx.replyWithHTML(text, keyboard);
+        }
+        return await ctx.replyWithPhoto(product.public_image_file_id, {
+            caption: text,
+            parse_mode: 'HTML',
+            ...keyboard,
+        });
+    } catch (error) {
+        return ctx.replyWithHTML(text, keyboard);
+    }
+}
+
 module.exports = (bot) => {
     // Handle product selection
-    bot.action(/^product_(\d+)$/, (ctx) => {
+    bot.action(/^product_(\d+)$/, async (ctx) => {
         const productId = parseInt(ctx.match[1]);
         const product = productService.getById(productId);
 
@@ -32,10 +49,7 @@ module.exports = (bot) => {
             // Back to product list
             buttons.push([Markup.button.callback('↩️ Quay lại', 'refresh_products')]);
 
-            return ctx.replyWithHTML(
-                messages.contactOnly(product),
-                Markup.inlineKeyboard(buttons)
-            );
+            return replyProductCard(ctx, product, messages.contactOnly(product), Markup.inlineKeyboard(buttons));
         }
 
         // Check stock (use display_stock which falls back to sheet_stock)
@@ -46,9 +60,6 @@ module.exports = (bot) => {
 
         // Show quantity selector
         const maxQty = Math.min(availableStock, 10);
-        ctx.replyWithHTML(
-            messages.selectQuantity(product),
-            quantityKeyboard(productId, maxQty)
-        );
+        return replyProductCard(ctx, product, messages.selectQuantity(product), quantityKeyboard(productId, maxQty));
     });
 };

@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented here.
 
+## [1.15.0] - 2026-08-19
+
+### Added
+
+- Add an independent public product description and optional Telegram-hosted product image, editable from the product administration menu without being overwritten by Google Sheet synchronization.
+- Add an optional private buyer message to every individual stock item, with bulk `stock || message` input and protected per-stock editing.
+- Include each stock item's private message with that exact key/account in automatic, confirmed, AI-confirmed, and manual delivery paths.
+
+### Changed
+
+- Put **Refresh** and context-aware **Back** buttons in one two-column row under both the all-products list and every category product list, including empty lists.
+
+### Security
+
+- Keep stock data and private buyer messages out of AI prompts, previews, public product descriptions, and customer lists; render administrator-authored delivery text with HTML escaping.
+
 ## [1.14.9] - 2026-08-19
 
 ### Changed

@@ -23,6 +23,19 @@ function queueManualDelivery(database, orderId, accounts) {
             return { success: false, error: `Đơn đã có job giao hàng (${existing.status})` };
         }
 
+        const items = accounts.map((line) => {
+            const value = String(line).trim();
+            const separator = value.indexOf('||');
+            if (separator === -1) return { data: value, buyerMessage: null };
+            return {
+                data: value.slice(0, separator).trim(),
+                buyerMessage: value.slice(separator + 2).trim() || null,
+            };
+        });
+        if (items.some((item) => !item.data)) {
+            return { success: false, error: 'Dữ liệu giao hàng không được để trống trước dấu ||' };
+        }
+
         database.prepare(`
             INSERT INTO telegram_jobs (dedupe_key, kind, order_id, chat_id, payload)
             VALUES (?, 'customer_delivery', ?, ?, ?)
@@ -34,7 +47,7 @@ function queueManualDelivery(database, orderId, accounts) {
                 orderId: order.id,
                 productName: order.product_name,
                 quantity: order.quantity,
-                accounts,
+                items,
             })
         );
         database.prepare(`

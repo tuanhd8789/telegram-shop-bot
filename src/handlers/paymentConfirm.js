@@ -66,7 +66,7 @@ async function deliverOrder(bot, orderId) {
         // Send account details
         await bot.telegram.sendMessage(
             order.user_id,
-            messages.orderSuccess(product, order.quantity, result.accounts),
+            messages.orderSuccess(product, order.quantity, result.deliveryItems),
             {
                 parse_mode: 'HTML',
                 ...postDeliveryKeyboard(),

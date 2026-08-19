@@ -1,8 +1,15 @@
 const { escapeHtml } = require('../utils/telegramMarkup');
 
 function renderCustomerDelivery(payload) {
-    const accounts = payload.accounts
-        .map((account, index) => `${index + 1})\n${escapeHtml(account)}`)
+    const deliveryItems = payload.items || payload.accounts || [];
+    const accounts = deliveryItems
+        .map((item, index) => {
+            const normalized = typeof item === 'string' ? { data: item } : item;
+            return `${index + 1})\n${escapeHtml(normalized.data)}` +
+                (normalized.buyerMessage
+                    ? `\n💬 <b>Lời nhắn riêng:</b>\n${escapeHtml(normalized.buyerMessage)}`
+                    : '');
+        })
         .join('\n');
     return (
         `✅ <b>THANH TOÁN THÀNH CÔNG</b>\n\n` +

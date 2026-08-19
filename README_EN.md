@@ -185,6 +185,10 @@ Categories configured with `custom_emoji_id` use the selected Telegram custom em
 
 The customer category menu uses a compact grid of up to two columns, preserves each category icon, and ends with **Refresh** and **Back** actions. A category is green when at least one active product has local or Sheet stock, and red when every active product is out of stock.
 
+Both the all-products screen and each category's product screen end with a context-aware **Refresh | Back** row. Administrators can add an independent public description and a Telegram-hosted image through **Product management → Edit description & image**.
+
+Each stock record may also carry a private buyer message such as a download URL or installation guide. Use `stock data || private message` during bulk entry, or open a stock detail and select **Edit message**. The message is delivered only with that exact key/account. See the [product content and stock-message guide](docs/product-content-and-stock-messages.md).
+
 Product buttons use **Price | Stock | App name**, read their individual icon from `products.custom_emoji_id`, and are green when stocked or red when out of stock. **Administration → Product management → Edit name & icon** uses the same two-step flow. Per the [Telegram Bot API](https://core.telegram.org/bots/api#inlinekeyboardbutton), an inline-button icon accepts only `icon_custom_emoji_id`; a PNG/SVG URL cannot replace it. See the [custom emoji guide](docs/product-custom-emojis.md) for configuration and the current Autodesk mappings.
 
 ## 👛 Wallet top-ups

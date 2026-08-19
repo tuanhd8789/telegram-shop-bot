@@ -93,8 +93,9 @@ const orderService = {
 
     // Get account data
     const accounts = stock.map((s) => s.data);
+    const deliveryItems = stock.map((s) => ({ data: s.data, buyerMessage: s.buyer_message || null }));
 
-    return { success: true, accounts, order };
+    return { success: true, accounts, deliveryItems, order };
   },
 
   /**

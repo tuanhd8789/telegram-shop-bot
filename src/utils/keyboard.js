@@ -4,7 +4,10 @@ const { callbackWithCustomEmoji } = require('./telegramMarkup');
 /**
  * Build product list keyboard
  */
-function productListKeyboard(products) {
+function productListKeyboard(products, {
+    refreshCallback = 'refresh_products',
+    backCallback = 'nav_menu',
+} = {}) {
     const buttons = products.map((p) => {
         const stock = p.display_stock ?? p.stock_count ?? 0;
         const stockLabel = p.contact_only && stock === 0 ? 'Liên hệ' : stock;
@@ -19,7 +22,10 @@ function productListKeyboard(products) {
         return [button];
     });
 
-    buttons.push([Markup.button.callback('🔄 Làm mới', 'refresh_products')]);
+    buttons.push([
+        Markup.button.callback('🔄 Làm mới', refreshCallback),
+        Markup.button.callback('↩️ Quay lại', backCallback),
+    ]);
 
     return Markup.inlineKeyboard(buttons);
 }

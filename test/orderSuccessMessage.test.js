@@ -17,3 +17,15 @@ test('legacy confirmed orders use the same plain product information format', ()
     assert.doesNotMatch(message, /Thông tin tài khoản|outlook\.com|passchatgpt/);
     assert.match(messages.orderSuccessNotify(1), /1 sản phẩm/);
 });
+
+test('legacy confirmed orders include an escaped per-stock buyer message', () => {
+    const message = messages.orderSuccess(
+        { name: 'Windows' },
+        1,
+        [{ data: 'KEY-123', buyerMessage: 'Tải & cài tại <link>' }]
+    );
+
+    assert.match(message, /KEY-123/);
+    assert.match(message, /Lời nhắn riêng:/);
+    assert.match(message, /Tải &amp; cài tại &lt;link&gt;/);
+});

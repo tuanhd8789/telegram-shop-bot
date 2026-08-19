@@ -529,7 +529,7 @@ function createToolRegistry({ db, config, telegram, syncFromSheet }) {
                     .get(`order:${args.order_id}:delivery`);
                 if (existingJob) throw new ActionError(`Đơn đã có job giao hàng trạng thái ${existingJob.status}.`);
                 const stock = db.prepare(`
-                    SELECT id, data FROM stock
+                    SELECT id, data, buyer_message FROM stock
                     WHERE product_id = ? AND is_sold = 0 ORDER BY id LIMIT ?
                 `).all(args.product_id, args.quantity);
                 if (args.status === 'pending' && stock.length >= args.quantity) {
@@ -558,7 +558,10 @@ function createToolRegistry({ db, config, telegram, syncFromSheet }) {
                             orderId: args.order_id,
                             productName: args.product_name,
                             quantity: args.quantity,
-                            accounts: stock.map((item) => item.data),
+                            items: stock.map((item) => ({
+                                data: item.data,
+                                buyerMessage: item.buyer_message || null,
+                            })),
                         })
                     );
                     return { message: `Đã xác nhận và xếp hàng giao đơn #${args.order_id}; worker sẽ tự retry nếu Telegram tạm lỗi.` };

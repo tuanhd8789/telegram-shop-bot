@@ -30,15 +30,17 @@ const messages = {
         '👇 👇 👇  Chọn sản phẩm bạn muốn mua bên dưới:',
 
     selectQuantity: (product) =>
-        `📦 <b>${product.name}</b>\n` +
+        `📦 <b>${escapeHtml(product.name)}</b>\n` +
         `💰 Giá: ${formatPrice(product.price)}/cái\n` +
         `📊 Còn lại: ${product.display_stock || product.stock_count} sản phẩm\n\n` +
+        (product.public_description ? `📝 ${escapeHtml(product.public_description)}\n\n` : '') +
         `Chọn số lượng muốn mua:`,
 
     contactOnly: (product) =>
-        `📦 <b>${product.name}</b>\n\n` +
+        `📦 <b>${escapeHtml(product.name)}</b>\n\n` +
         `💰 Giá: ${formatPrice(product.price)}\n` +
-        (product.promotion ? `📋 ${product.promotion}\n` : '') +
+        (product.promotion ? `📋 ${escapeHtml(product.promotion)}\n` : '') +
+        (product.public_description ? `📝 ${escapeHtml(product.public_description)}\n\n` : '') +
         `Liên hệ mua ở phía dưới để mình nâng nha các tình yêu\n\n` +
         `💬 Sản phẩm này cần liên hệ trực tiếp để mua.\n` +
         `Bấm nút bên dưới để xem thông tin liên hệ.`,
@@ -55,14 +57,18 @@ const messages = {
         `├ Số tiền: <b>${formatPrice(order.total_price)}</b>\n` +
         `└ Nội dung CK: <code>${paymentCode}</code>`,
 
-    orderSuccess: (product, quantity, accounts) => {
+    orderSuccess: (product, quantity, items) => {
         let msg =
             `✅ <b>ĐƠN HÀNG THÀNH CÔNG!</b>\n\n` +
             `📦 ${escapeHtml(product.name)} × ${quantity}\n\n` +
             `🔑 <b>Thông tin sản phẩm:</b>\n`;
 
-        accounts.forEach((acc, i) => {
-            msg += `${i + 1})\n${escapeHtml(acc)}\n`;
+        items.forEach((item, i) => {
+            const normalized = typeof item === 'string' ? { data: item } : item;
+            msg += `${i + 1})\n${escapeHtml(normalized.data)}\n`;
+            if (normalized.buyerMessage) {
+                msg += `💬 <b>Lời nhắn riêng:</b>\n${escapeHtml(normalized.buyerMessage)}\n`;
+            }
         });
 
         msg += `\nLiên hệ với lệnh /hotro để được hỗ trợ ngay.`;

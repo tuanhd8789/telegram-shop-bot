@@ -36,12 +36,20 @@ function createDatabase() {
 
 test('queues exact manual stock without marking the paid order delivered early', () => {
     const db = createDatabase();
-    const result = queueManualDelivery(db, 1, ['account-1', 'account-2']);
+    const result = queueManualDelivery(db, 1, [
+        'account-1 || private guide 1',
+        'account-2',
+    ]);
 
     assert.equal(result.success, true);
     assert.equal(db.prepare('SELECT status FROM orders WHERE id = 1').pluck().get(), 'paid');
     assert.equal(db.prepare('SELECT COUNT(*) FROM telegram_jobs').pluck().get(), 1);
     assert.equal(db.prepare('SELECT sheet_stock FROM products WHERE id = 1').pluck().get(), 3);
+    const payload = JSON.parse(db.prepare('SELECT payload FROM telegram_jobs').pluck().get());
+    assert.deepEqual(payload.items, [
+        { data: 'account-1', buyerMessage: 'private guide 1' },
+        { data: 'account-2', buyerMessage: null },
+    ]);
     db.close();
 });
 

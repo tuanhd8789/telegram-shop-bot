@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const db = require('../src/database');
 const productService = require('../src/services/productService');
 
-test('admin can update and delete unsold stock but cannot mutate sold stock', () => {
+test('admin can update private buyer messages on unsold stock but sold stock remains immutable', () => {
     const category = db.prepare('INSERT INTO categories (name, emoji, sort_order) VALUES (?, ?, ?)')
         .run('Stock CRUD test', '🧪', 9999);
     const product = db.prepare('INSERT INTO products (category_id, name, price) VALUES (?, ?, ?)')
@@ -19,6 +19,9 @@ test('admin can update and delete unsold stock but cannot mutate sold stock', ()
 
         assert.equal(productService.updateStockItem(unsold.lastInsertRowid, 'new-data').changes, 1);
         assert.equal(productService.getStockItem(unsold.lastInsertRowid).data, 'new-data');
+        assert.equal(productService.updateStockBuyerMessage(unsold.lastInsertRowid, 'Download & install guide').changes, 1);
+        assert.equal(productService.getStockItem(unsold.lastInsertRowid).buyer_message, 'Download & install guide');
+        assert.equal(productService.updateStockBuyerMessage(sold.lastInsertRowid, 'tampered').changes, 0);
         assert.equal(productService.updateStockItem(sold.lastInsertRowid, 'tampered').changes, 0);
         assert.equal(productService.deleteStockItem(sold.lastInsertRowid).changes, 0);
         assert.equal(productService.deleteStockItem(unsold.lastInsertRowid).changes, 1);
@@ -28,4 +31,15 @@ test('admin can update and delete unsold stock but cannot mutate sold stock', ()
         db.prepare('DELETE FROM products WHERE id = ?').run(product.lastInsertRowid);
         db.prepare('DELETE FROM categories WHERE id = ?').run(category.lastInsertRowid);
     }
+});
+
+test('bulk stock input separates each stock secret from its buyer message', () => {
+    assert.deepEqual(productService.parseStockInputLine('KEY-123 || https://example.com/guide'), {
+        data: 'KEY-123',
+        buyerMessage: 'https://example.com/guide',
+    });
+    assert.deepEqual(productService.parseStockInputLine('email|password'), {
+        data: 'email|password',
+        buyerMessage: null,
+    });
 });

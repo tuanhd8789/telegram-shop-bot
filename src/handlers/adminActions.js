@@ -38,6 +38,7 @@ module.exports = (bot) => {
             `📦 SP: <b>${product.name}</b>\n` +
             `📊 SL: ${order.quantity}\n\n` +
             `👇 Gửi nội dung sản phẩm ngay bây giờ, mỗi sản phẩm một dòng.\n` +
+            `Có thể thêm lời nhắn riêng sau dấu <code>||</code>.\n` +
             `Bot sẽ lưu job và tự retry nếu Telegram tạm lỗi.\n\n` +
             `Gõ /cancel để hủy.`
         );
@@ -298,9 +299,9 @@ module.exports = (bot) => {
         ctx.replyWithHTML(
             `📦 Thêm nội dung giao hàng cho: <b>${product.name}</b>\n` +
             `📊 Kho hiện tại: ${product.stock_count}\n\n` +
-            `👇 Gửi nội dung admin soạn sẵn (mỗi sản phẩm một dòng):\n\n` +
+            `👇 Gửi nội dung admin soạn sẵn (mỗi sản phẩm một dòng). Có thể thêm lời nhắn riêng sau dấu <code>||</code>:\n\n` +
             `<i>Ví dụ:</i>\n` +
-            `<code>Link tải: https://example.com | Mã: ABC-123\nHướng dẫn kích hoạt: liên hệ /hotro</code>\n\n` +
+            `<code>Mã: ABC-123 || Link tải: https://example.com và hướng dẫn cài đặt</code>\n\n` +
             `Gõ /cancel để hủy.`
         );
     });
