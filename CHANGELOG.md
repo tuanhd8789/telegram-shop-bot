@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented here.
 
+## [1.17.0] - 2026-08-19
+
+### Added
+
+- Notify every registered Telegram user when an active visible product transitions from zero stock to positive stock through direct stock entry or Google Sheet synchronization.
+- Include the product custom emoji, escaped name, current stock, **View product**, and one-item **Buy now** actions in each restock notification.
+
+### Changed
+
+- Report actual inserted stock rows and the successful/total restock notification count to administrators after direct restocking.
+- Suppress duplicate notifications for products that were already in stock, newly created Sheet products, and hidden products or categories.
+
+### Security
+
+- Keep stock secrets and buyer-only messages out of public restock notifications, and isolate delivery failures so one blocked subscriber cannot stop the remaining broadcast.
+
 ## [1.16.2] - 2026-08-19
 
 ### Changed

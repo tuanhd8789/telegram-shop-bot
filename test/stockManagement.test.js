@@ -43,3 +43,20 @@ test('bulk stock input separates each stock secret from its buyer message', () =
         buyerMessage: null,
     });
 });
+
+test('adding stock reports the transition used by restock notifications', () => {
+    db.exec('BEGIN');
+    try {
+        const categoryId = Number(db.prepare('INSERT INTO categories (name) VALUES (?)')
+            .run('Restock transition test').lastInsertRowid);
+        const productId = Number(db.prepare(
+            'INSERT INTO products (category_id, name, price) VALUES (?, ?, ?)'
+        ).run(categoryId, 'Restock transition product', 1000).lastInsertRowid);
+
+        const result = productService.addStock(productId, ['KEY-1', 'KEY-2 || Hướng dẫn']);
+
+        assert.deepEqual(result, { added: 2, beforeStock: 0, afterStock: 2 });
+    } finally {
+        db.exec('ROLLBACK');
+    }
+});

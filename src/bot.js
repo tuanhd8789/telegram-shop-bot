@@ -14,6 +14,7 @@ const { createAiService } = require('./services/aiService');
 const { createAiChatModeStore } = require('./services/aiChatModeStore');
 const { createAiActionGateway } = require('./services/aiActionGateway');
 const { createAiController } = require('./commands/ai');
+const { createRestockNotificationService } = require('./services/restockNotificationService');
 
 const configErrors = validateConfig(config);
 if (configErrors.length > 0) {
@@ -22,6 +23,9 @@ if (configErrors.length > 0) {
 }
 
 const bot = new Telegraf(config.BOT_TOKEN);
+const restockNotifier = createRestockNotificationService({ db, telegram: bot.telegram });
+const sheetSync = require('./services/sheetSync');
+sheetSync.configureRestockNotifier(restockNotifier);
 const aiService = config.AI.ENABLED ? createAiService({
     baseUrl: config.AI.BASE_URL,
     apiKey: config.AI.API_KEY,
@@ -33,7 +37,7 @@ const aiActionGateway = config.AI.ENABLED ? createAiActionGateway({
     db,
     config,
     telegram: bot.telegram,
-    syncFromSheet: require('./services/sheetSync').syncFromSheet,
+    syncFromSheet: sheetSync.syncFromSheet,
 }) : null;
 const aiController = createAiController({
     adminId: config.ADMIN_ID,
@@ -81,13 +85,13 @@ require('./commands/checkpay')(bot);
 require('./commands/support')(bot);
 require('./commands/myid')(bot);
 require('./commands/ai')(bot, aiController);
-require('./handlers/navigation').registerNavigation(bot, { aiController });
+require('./handlers/navigation').registerNavigation(bot, { aiController, restockNotifier });
 
 // Register handlers
 require('./handlers/productSelect')(bot);
 require('./handlers/quantitySelect')(bot);
 require('./handlers/paymentConfirm')(bot);
-require('./handlers/adminActions')(bot);
+require('./handlers/adminActions')(bot, { restockNotifier });
 
 let healthServer;
 let ready = false;
@@ -117,8 +121,7 @@ async function start() {
         console.log(`🤖 Admin AI: ${config.AI.ENABLED ? `enabled (${config.AI.MODEL})` : 'disabled'}`);
 
         // Start Google Sheet auto-sync
-        const { startAutoSync } = require('./services/sheetSync');
-        startAutoSync();
+        sheetSync.startAutoSync();
 
         // Keep recoverable database snapshots on a separate volume.
         const { startBackupScheduler } = require('./services/backupService');

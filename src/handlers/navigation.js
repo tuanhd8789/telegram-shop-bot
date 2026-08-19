@@ -444,7 +444,7 @@ async function runSheetSync(ctx) {
     return ctx.reply(`✅ Đồng bộ xong: cập nhật ${result.updated}, thêm ${result.added}, tổng ${result.total} sản phẩm.`);
 }
 
-function registerNavigation(bot, { aiController } = {}) {
+function registerNavigation(bot, { aiController, restockNotifier } = {}) {
     bot.action('nav_menu', (ctx) => { ctx.answerCbQuery(); return showMainMenu(ctx); });
     bot.action('nav_products', (ctx) => { ctx.answerCbQuery(); return productCommand.sendProductList(ctx); });
     bot.action('nav_categories', (ctx) => {
@@ -1361,9 +1361,17 @@ function registerNavigation(bot, { aiController } = {}) {
         }
         if (state.action === 'stock_data') {
             const lines = text.split('\n').filter((line) => line.trim());
-            productService.addStock(state.productId, lines);
+            const stockChange = productService.addStock(state.productId, lines);
+            const notification = await restockNotifier?.notifyIfRestocked(
+                state.productId, stockChange.beforeStock
+            );
             delete ctx.session.navigation;
-            return ctx.reply(`✅ Đã thêm ${lines.length} mặt hàng vào kho.`);
+            return ctx.reply(
+                `✅ Đã thêm ${stockChange.added} mặt hàng vào kho.` +
+                (notification?.triggered
+                    ? `\n📣 Đã thông báo hàng về cho ${notification.sent}/${notification.total} người đăng ký.`
+                    : '')
+            );
         }
         if (state.action === 'edit_stock') {
             const item = productService.getStockItem(state.stockId);
