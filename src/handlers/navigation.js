@@ -153,7 +153,7 @@ function adminCategoryMenuKeyboard() {
         [Markup.button.callback('🗑 Xóa danh mục', 'nav_admin_delete_category')],
         [Markup.button.callback('🗂 Xem danh mục', 'nav_admin_categories')],
         [Markup.button.callback('🔥 Sản phẩm đang hot', 'nav_admin_hot')],
-        [Markup.button.callback('🎁 Combo sản phẩm', 'nav_admin_combos')],
+        [Markup.button.callback('🎁 Combo giá tốt', 'nav_admin_combos')],
         [Markup.button.url('❓ Hướng dẫn danh mục & combo', 'https://github.com/tuanhd8789/telegram-shop-bot/blob/main/docs/catalog-hierarchy-hot-combos.md')],
         [Markup.button.callback('↩️ Quản trị', 'nav_admin')],
     ]);

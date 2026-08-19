@@ -1,4 +1,4 @@
-# Danh mục hai cấp, sản phẩm hot và combo
+# Danh mục hai cấp, sản phẩm hot và Combo giá tốt
 
 ## Phạm vi dữ liệu
 
@@ -31,9 +31,9 @@ Vào **Quản trị → Quản lý danh mục → Sản phẩm đang hot** để
 
 Thao tác này không nhân bản sản phẩm và không tạo kho riêng; tồn kho luôn là tồn của sản phẩm gốc.
 
-## Combo sản phẩm
+## Combo giá tốt
 
-Vào **Quản trị → Quản lý danh mục → Combo sản phẩm**.
+Vào **Quản trị → Quản lý danh mục → Combo giá tốt**.
 
 1. Tạo combo bằng tên, giá và ID custom emoji.
 2. Mở combo vừa tạo.
