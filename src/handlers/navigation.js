@@ -128,7 +128,9 @@ function adminProductMenuKeyboard() {
         [Markup.button.callback('📦 Tất cả sản phẩm', 'nav_admin_product_list')],
         [Markup.button.callback('➕ Tạo sản phẩm', 'nav_admin_add_product')],
         [Markup.button.callback('💵 Sửa giá', 'nav_admin_edit_price'), Markup.button.callback('✏️ Sửa tên & icon', 'nav_admin_edit_name')],
+        [Markup.button.callback('📝 Sửa mô tả & ảnh', 'nav_admin_edit_description')],
         [Markup.button.callback('🔁 Bật/tắt', 'nav_admin_toggle_product'), Markup.button.callback('🗑 Xóa', 'nav_admin_delete_product')],
+        [Markup.button.url('❓ Hướng dẫn nội dung', 'https://github.com/tuanhd8789/telegram-shop-bot/blob/main/docs/product-content-and-stock-messages.md')],
         [Markup.button.callback('↩️ Quản trị', 'nav_admin')],
     ]);
 }
@@ -289,16 +291,20 @@ function showStockItem(ctx, stockId) {
     const soldText = item.is_sold
         ? `Đã bán${item.sold_order_id ? ` — đơn #${item.sold_order_id}` : ''}`
         : 'Chưa bán';
-    const rows = item.is_sold ? [] : [[
-        Markup.button.callback('✏️ Sửa stock', `nav_stock_edit_${item.id}`),
-        Markup.button.callback('🗑 Xóa stock', `nav_stock_delete_${item.id}`),
-    ]];
+    const rows = item.is_sold ? [] : [
+        [
+            Markup.button.callback('✏️ Sửa stock', `nav_stock_edit_${item.id}`),
+            Markup.button.callback('💬 Sửa lời nhắn', `nav_stock_message_${item.id}`),
+        ],
+        [Markup.button.callback('🗑 Xóa stock', `nav_stock_delete_${item.id}`)],
+    ];
     rows.push([Markup.button.callback('↩️ Kho sản phẩm', `nav_stock_product_${item.product_id}`)]);
     return ctx.replyWithHTML(
         `👁 <b>CHI TIẾT STOCK #${item.id}</b>\n\n` +
         `📦 Sản phẩm: <b>${escapeHtml(item.product_name)}</b> (#${item.product_id})\n` +
         `📋 Trạng thái: <b>${soldText}</b>\n` +
-        `🔐 Dữ liệu:\n<code>${escapeHtml(item.data)}</code>` +
+        `🔐 Dữ liệu:\n<code>${escapeHtml(item.data)}</code>\n\n` +
+        `💬 Lời nhắn riêng cho người mua:\n${item.buyer_message ? escapeHtml(item.buyer_message) : '<i>Chưa có</i>'}` +
         (item.is_sold ? '\n\n🔒 Stock đã bán được khóa để bảo toàn lịch sử đơn hàng.' : ''),
         Markup.inlineKeyboard(rows)
     );
@@ -395,10 +401,13 @@ function registerNavigation(bot, { aiController } = {}) {
         const category = productService.getCategories().find((item) => item.id === Number(ctx.match[1]));
         if (!category) return ctx.reply('❌ Danh mục không tồn tại.');
         const products = productService.getByCategory(category.id);
-        if (products.length === 0) return ctx.reply('❌ Danh mục này chưa có sản phẩm.');
         const sendProducts = () => ctx.replyWithHTML(
-            `${customEmojiHtml(category.custom_emoji_id, category.emoji || '📂')} <b>${escapeHtml(category.name)}</b>`,
-            productListKeyboard(products)
+            `${customEmojiHtml(category.custom_emoji_id, category.emoji || '📂')} <b>${escapeHtml(category.name)}</b>` +
+                (products.length ? '' : '\n\n❌ Danh mục này chưa có sản phẩm.'),
+            productListKeyboard(products, {
+                refreshCallback: `nav_category_${category.id}`,
+                backCallback: 'nav_categories',
+            })
         );
         if (category.image_url) {
             return ctx.replyWithPhoto(category.image_url, { caption: `${category.emoji || '📂'} ${category.name}` })
@@ -443,6 +452,23 @@ function registerNavigation(bot, { aiController } = {}) {
         ctx.answerCbQuery();
         const picker = productPicker('nav_edit_name', '✏️ Chọn sản phẩm cần sửa tên & icon:');
         return ctx.reply(picker.text, picker.keyboard);
+    });
+    bot.action('nav_admin_edit_description', (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        const picker = productPicker('nav_edit_description', '📝 Chọn sản phẩm cần sửa mô tả công khai & ảnh:');
+        return ctx.reply(picker.text, picker.keyboard);
+    });
+    bot.action(/^nav_edit_description_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        const product = productService.getById(Number(ctx.match[1]));
+        if (!product) return ctx.answerCbQuery('❌ Sản phẩm không tồn tại');
+        ctx.answerCbQuery();
+        ctx.session.navigation = { action: 'edit_product_description', productId: product.id };
+        return ctx.replyWithHTML(
+            `📝 Bước 1/2: Gửi mô tả công khai mới cho <b>${escapeHtml(product.name)}</b> (tối đa 600 ký tự).\n\n` +
+            `Có thể gửi ngay một ảnh kèm caption để cập nhật cả hai. Gửi dấu <code>-</code> để xóa mô tả và ảnh; /cancel để hủy.`
+        );
     });
     bot.action(/^nav_edit_name_(\d+)$/, (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
@@ -626,7 +652,10 @@ function registerNavigation(bot, { aiController } = {}) {
         const product = productService.getById(Number(ctx.match[1]));
         if (!product) return ctx.reply('❌ Sản phẩm không tồn tại.');
         ctx.session.navigation = { action: 'stock_data', productId: product.id };
-        return ctx.replyWithHTML(`📥 Gửi dữ liệu kho cho <b>${product.name}</b>, mỗi mặt hàng một dòng.`);
+        return ctx.replyWithHTML(
+            `📥 Gửi dữ liệu kho cho <b>${escapeHtml(product.name)}</b>, mỗi mặt hàng một dòng.\n\n` +
+            `Có thể thêm lời nhắn riêng theo mẫu:\n<code>dữ liệu stock || link tải và hướng dẫn cài đặt</code>`
+        );
     });
     bot.action(/^nav_clear_stock_(\d+)$/, (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
@@ -674,6 +703,19 @@ function registerNavigation(bot, { aiController } = {}) {
         ctx.session.navigation = { action: 'edit_stock', stockId: item.id, productId: item.product_id };
         return ctx.replyWithHTML(
             `✏️ Gửi dữ liệu mới cho stock <b>#${item.id}</b>.\n\nHiện tại:\n<code>${escapeHtml(item.data)}</code>\n\nGõ /cancel để hủy.`
+        );
+    });
+    bot.action(/^nav_stock_message_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        const item = productService.getStockItem(Number(ctx.match[1]));
+        if (!item) return ctx.answerCbQuery('❌ Stock không tồn tại');
+        if (item.is_sold) return ctx.answerCbQuery('🔒 Không thể sửa stock đã bán', { show_alert: true });
+        ctx.answerCbQuery();
+        ctx.session.navigation = { action: 'edit_stock_buyer_message', stockId: item.id };
+        return ctx.replyWithHTML(
+            `💬 Gửi lời nhắn riêng cho người mua stock <b>#${item.id}</b> (tối đa 2000 ký tự).\n` +
+            `Bot sẽ gửi lời nhắn này cùng đúng mã khi giao hàng. Gửi dấu <code>-</code> để xóa; /cancel để hủy.\n\n` +
+            `Hiện tại:\n${item.buyer_message ? escapeHtml(item.buyer_message) : '<i>Chưa có</i>'}`
         );
     });
     bot.action(/^nav_stock_delete_(\d+)$/, (ctx) => {
@@ -758,6 +800,25 @@ function registerNavigation(bot, { aiController } = {}) {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
         ctx.answerCbQuery();
         return aiController?.stopChat(ctx) || ctx.reply('⚠️ Trợ lý AI chưa sẵn sàng.');
+    });
+
+    bot.on('photo', async (ctx, next) => {
+        const state = ctx.session.navigation;
+        if (!state || !isAdmin(ctx) || !['edit_product_description', 'edit_product_description_image'].includes(state.action)) {
+            return next();
+        }
+        const product = productService.getById(state.productId);
+        if (!product) {
+            delete ctx.session.navigation;
+            return ctx.reply('❌ Sản phẩm không tồn tại.');
+        }
+        const photo = ctx.message.photo?.at(-1);
+        if (!photo?.file_id) return ctx.reply('❌ Không đọc được ảnh, vui lòng gửi lại.');
+        const caption = String(ctx.message.caption || '').trim();
+        const description = (caption || state.publicDescription || product.public_description || '').slice(0, 600);
+        productService.updatePublicDescription(product.id, description, photo.file_id);
+        delete ctx.session.navigation;
+        return ctx.replyWithHTML(`✅ Đã cập nhật mô tả công khai và ảnh cho <b>${escapeHtml(product.name)}</b>.`);
     });
 
     bot.on('text', async (ctx, next) => {
@@ -939,6 +1000,41 @@ function registerNavigation(bot, { aiController } = {}) {
                 `<b>${escapeHtml(state.name)}</b>. Icon: ${customEmojiId ? `<code>${customEmojiId}</code>` : 'không dùng'}.`
             );
         }
+        if (state.action === 'edit_product_description') {
+            const product = productService.getById(state.productId);
+            if (!product) {
+                delete ctx.session.navigation;
+                return ctx.reply('❌ Sản phẩm không tồn tại.');
+            }
+            if (text === '-') {
+                productService.updatePublicDescription(product.id, null, null);
+                delete ctx.session.navigation;
+                return ctx.replyWithHTML(`✅ Đã xóa mô tả công khai và ảnh của <b>${escapeHtml(product.name)}</b>.`);
+            }
+            const publicDescription = text.slice(0, 600);
+            ctx.session.navigation = {
+                action: 'edit_product_description_image',
+                productId: product.id,
+                publicDescription,
+            };
+            return ctx.replyWithHTML(
+                `🖼 Bước 2/2: Gửi ảnh sản phẩm, gửi <code>=</code> để giữ ảnh hiện tại, hoặc <code>-</code> để bỏ ảnh.`
+            );
+        }
+        if (state.action === 'edit_product_description_image') {
+            if (!['=', '-'].includes(text)) {
+                return ctx.reply('❌ Hãy gửi ảnh, dấu = để giữ ảnh hiện tại, dấu - để bỏ ảnh, hoặc /cancel.');
+            }
+            const product = productService.getById(state.productId);
+            if (!product) {
+                delete ctx.session.navigation;
+                return ctx.reply('❌ Sản phẩm không tồn tại.');
+            }
+            const imageFileId = text === '=' ? product.public_image_file_id : null;
+            productService.updatePublicDescription(product.id, state.publicDescription, imageFileId);
+            delete ctx.session.navigation;
+            return ctx.replyWithHTML(`✅ Đã cập nhật mô tả công khai cho <b>${escapeHtml(product.name)}</b>.`);
+        }
         if (state.action === 'stock_data') {
             const lines = text.split('\n').filter((line) => line.trim());
             productService.addStock(state.productId, lines);
@@ -958,6 +1054,21 @@ function registerNavigation(bot, { aiController } = {}) {
             if (result.changes !== 1) return ctx.reply('❌ Không thể cập nhật stock; vui lòng tải lại.');
             return ctx.replyWithHTML(
                 `✅ Đã cập nhật stock <b>#${item.id}</b>.\n\n<code>${escapeHtml(data)}</code>`,
+                Markup.inlineKeyboard([[Markup.button.callback('👁 Xem chi tiết', `nav_stock_item_${item.id}`)]])
+            );
+        }
+        if (state.action === 'edit_stock_buyer_message') {
+            const item = productService.getStockItem(state.stockId);
+            if (!item || item.is_sold) {
+                delete ctx.session.navigation;
+                return ctx.reply('❌ Stock không tồn tại hoặc đã được bán.');
+            }
+            const buyerMessage = text === '-' ? null : text.slice(0, 2000);
+            const result = productService.updateStockBuyerMessage(item.id, buyerMessage);
+            delete ctx.session.navigation;
+            if (result.changes !== 1) return ctx.reply('❌ Không thể cập nhật lời nhắn; vui lòng tải lại.');
+            return ctx.replyWithHTML(
+                `✅ Đã ${buyerMessage ? 'cập nhật' : 'xóa'} lời nhắn riêng của stock <b>#${item.id}</b>.`,
                 Markup.inlineKeyboard([[Markup.button.callback('👁 Xem chi tiết', `nav_stock_item_${item.id}`)]])
             );
         }

@@ -16,6 +16,7 @@ function createDatabase(stockCount = 2) {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             product_id INTEGER NOT NULL,
             data TEXT NOT NULL,
+            buyer_message TEXT,
             is_sold INTEGER DEFAULT 0,
             sold_to INTEGER,
             sold_at DATETIME,
@@ -75,9 +76,9 @@ function createDatabase(stockCount = 2) {
         INSERT INTO orders (user_id, product_id, quantity, total_price, payment_code)
         VALUES (12345, 1, 2, 16000, 'PAYABC123');
     `);
-    const insertStock = db.prepare('INSERT INTO stock (product_id, data) VALUES (1, ?)');
+    const insertStock = db.prepare('INSERT INTO stock (product_id, data, buyer_message) VALUES (1, ?, ?)');
     for (let index = 0; index < stockCount; index += 1) {
-        insertStock.run(`account-${index + 1}`);
+        insertStock.run(`account-${index + 1}`, index === 0 ? 'Download guide' : null);
     }
     return db;
 }
@@ -122,6 +123,8 @@ test('records payment, reserves stock, and queues delivery atomically', () => {
     assert.equal(db.prepare('SELECT status FROM payment_transactions').pluck().get(), 'accepted');
     assert.equal(db.prepare("SELECT COUNT(*) FROM telegram_jobs WHERE kind = 'customer_delivery'").pluck().get(), 1);
     assert.equal(db.prepare("SELECT COUNT(*) FROM telegram_jobs WHERE kind = 'admin_alert'").pluck().get(), 1);
+    const delivery = JSON.parse(db.prepare("SELECT payload FROM telegram_jobs WHERE kind = 'customer_delivery'").pluck().get());
+    assert.deepEqual(delivery.items[0], { data: 'account-1', buyerMessage: 'Download guide' });
 
     const duplicate = service.process(validPayload(), { payloadHash: 'a'.repeat(64) });
     assert.equal(duplicate.status, 'duplicate');

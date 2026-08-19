@@ -40,6 +40,8 @@ db.exec(`
     name TEXT NOT NULL,
     price INTEGER NOT NULL,
     description TEXT,
+    public_description TEXT,
+    public_image_file_id TEXT,
     emoji TEXT DEFAULT '📦',
     custom_emoji_id TEXT,
     promotion TEXT,
@@ -54,6 +56,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     product_id INTEGER NOT NULL,
     data TEXT NOT NULL,
+    buyer_message TEXT,
     is_sold INTEGER DEFAULT 0,
     sold_to INTEGER,
     sold_at DATETIME,
@@ -155,7 +158,10 @@ db.exec(`
 try { db.exec('ALTER TABLE products ADD COLUMN contact_url TEXT'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE products ADD COLUMN sheet_stock INTEGER DEFAULT 0'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE products ADD COLUMN custom_emoji_id TEXT'); } catch (e) { /* already exists */ }
+try { db.exec('ALTER TABLE products ADD COLUMN public_description TEXT'); } catch (e) { /* already exists */ }
+try { db.exec('ALTER TABLE products ADD COLUMN public_image_file_id TEXT'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE stock ADD COLUMN sold_order_id INTEGER'); } catch (e) { /* already exists */ }
+try { db.exec('ALTER TABLE stock ADD COLUMN buyer_message TEXT'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE categories ADD COLUMN image_url TEXT'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE categories ADD COLUMN custom_emoji_id TEXT'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE categories ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))'); } catch (e) { /* already exists */ }

@@ -18,6 +18,21 @@ test('product buttons show price, stock and app name in that order with a custom
     assert.equal(button.callback_data, 'product_9');
     assert.equal(button.icon_custom_emoji_id, '5916038376150011838');
     assert.equal(button.style, undefined);
+    assert.deepEqual(
+        keyboard.reply_markup.inline_keyboard.at(-1).map((item) => item.callback_data),
+        ['refresh_products', 'nav_menu']
+    );
+});
+
+test('category product lists use category refresh and back callbacks in one row', () => {
+    const keyboard = productListKeyboard([], {
+        refreshCallback: 'nav_category_7',
+        backCallback: 'nav_categories',
+    });
+    assert.deepEqual(
+        keyboard.reply_markup.inline_keyboard[0].map((item) => item.callback_data),
+        ['nav_category_7', 'nav_categories']
+    );
 });
 
 test('contact-only products keep the same column order', () => {

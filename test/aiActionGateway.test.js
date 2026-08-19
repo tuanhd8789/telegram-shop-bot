@@ -20,6 +20,7 @@ function setup() {
         );
         CREATE TABLE stock (
           id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER NOT NULL, data TEXT NOT NULL,
+          buyer_message TEXT,
           is_sold INTEGER DEFAULT 0, sold_to INTEGER, sold_at TEXT, sold_order_id INTEGER,
           FOREIGN KEY (product_id) REFERENCES products(id)
         );
@@ -45,7 +46,8 @@ function setup() {
     db.prepare('INSERT INTO users (telegram_id, username, full_name) VALUES (1, ?, ?)').run('private_user', 'Private Name');
     const categoryId = Number(db.prepare('INSERT INTO categories (name, emoji, sort_order) VALUES (?, ?, ?)').run('Autodesk', '📲', 1).lastInsertRowid);
     const productId = Number(db.prepare('INSERT INTO products (category_id, name, price) VALUES (?, ?, ?)').run(categoryId, 'AutoCAD', 300000).lastInsertRowid);
-    const stockId = Number(db.prepare('INSERT INTO stock (product_id, data) VALUES (?, ?)').run(productId, 'secret-license-key').lastInsertRowid);
+    const stockId = Number(db.prepare('INSERT INTO stock (product_id, data, buyer_message) VALUES (?, ?, ?)')
+        .run(productId, 'secret-license-key', 'private download guide').lastInsertRowid);
     const orderId = Number(db.prepare(`
         INSERT INTO orders (user_id, product_id, quantity, total_price, payment_code)
         VALUES (1, ?, 1, 300000, 'PAYABC123')
@@ -136,7 +138,9 @@ test('confirmed orders reserve stock and enqueue durable delivery atomically', a
     assert.equal(job.kind, 'customer_delivery');
     assert.equal(job.order_id, orderId);
     assert.match(job.payload, /secret-license-key/);
+    assert.match(job.payload, /private download guide/);
     assert.doesNotMatch(db.prepare('SELECT preview FROM ai_action_requests WHERE id = ?').get(proposal.id).preview, /secret-license-key/);
+    assert.doesNotMatch(db.prepare('SELECT preview FROM ai_action_requests WHERE id = ?').get(proposal.id).preview, /private download guide/);
     db.close();
 });
 

@@ -94,12 +94,11 @@ const productService = {
      * Add stock items for a product
      */
     addStock(productId, dataLines) {
-        const insert = db.prepare('INSERT INTO stock (product_id, data) VALUES (?, ?)');
+        const insert = db.prepare('INSERT INTO stock (product_id, data, buyer_message) VALUES (?, ?, ?)');
         const insertMany = db.transaction((lines) => {
             for (const line of lines) {
-                if (line.trim()) {
-                    insert.run(productId, line.trim());
-                }
+                const item = typeof line === 'string' ? parseStockInputLine(line) : line;
+                if (item?.data?.trim()) insert.run(productId, item.data.trim(), item.buyerMessage?.trim() || null);
             }
         });
         insertMany(dataLines);
@@ -110,7 +109,7 @@ const productService = {
      */
     getStockItems(productId, limit = 20, offset = 0) {
         return db.prepare(`
-            SELECT id, product_id, data, is_sold, sold_to, sold_at, sold_order_id
+            SELECT id, product_id, data, buyer_message, is_sold, sold_to, sold_at, sold_order_id
             FROM stock
             WHERE product_id = ? AND is_sold = 0
             ORDER BY id
@@ -136,6 +135,17 @@ const productService = {
     updateStockItem(stockId, data) {
         return db.prepare('UPDATE stock SET data = ? WHERE id = ? AND is_sold = 0')
             .run(data.trim(), stockId);
+    },
+
+    updateStockBuyerMessage(stockId, buyerMessage) {
+        return db.prepare('UPDATE stock SET buyer_message = ? WHERE id = ? AND is_sold = 0')
+            .run(buyerMessage?.trim() || null, stockId);
+    },
+
+    updatePublicDescription(productId, publicDescription, publicImageFileId) {
+        return db.prepare(`
+            UPDATE products SET public_description = ?, public_image_file_id = ? WHERE id = ?
+        `).run(publicDescription?.trim() || null, publicImageFileId || null, productId);
     },
 
     /**
@@ -179,5 +189,17 @@ const productService = {
         return result.lastInsertRowid;
     },
 };
+
+function parseStockInputLine(line) {
+    const value = String(line || '').trim();
+    const separator = value.indexOf('||');
+    if (separator === -1) return { data: value, buyerMessage: null };
+    return {
+        data: value.slice(0, separator).trim(),
+        buyerMessage: value.slice(separator + 2).trim() || null,
+    };
+}
+
+productService.parseStockInputLine = parseStockInputLine;
 
 module.exports = productService;

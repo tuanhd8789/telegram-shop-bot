@@ -90,6 +90,22 @@ test('renders admin-authored product information as normal text with /hotro guid
     assert.doesNotMatch(message, /outlook\.com|passchatgpt|\/support/);
 });
 
+test('renders the private buyer message beside its exact delivered stock item', () => {
+    const message = renderJob({
+        kind: 'customer_delivery',
+        payload: JSON.stringify({
+            orderId: 8,
+            productName: 'Windows',
+            quantity: 1,
+            items: [{ data: 'KEY-123', buyerMessage: 'Tải tại https://example.com?a=1&b=2' }],
+        }),
+    });
+
+    assert.match(message, /KEY-123/);
+    assert.match(message, /Lời nhắn riêng:/);
+    assert.match(message, /https:\/\/example\.com\?a=1&amp;b=2/);
+});
+
 test('renders an incoming transfer alert with reconciliation details', () => {
     const message = renderJob({
         kind: 'admin_alert',

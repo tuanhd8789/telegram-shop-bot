@@ -19,7 +19,8 @@ function sendProductList(ctx, edit = false) {
 
     if (products.length === 0) {
         const msg = '❌ Hiện tại không có sản phẩm nào.';
-        return edit ? ctx.editMessageText(msg) : ctx.reply(msg);
+        const keyboard = productListKeyboard([]);
+        return edit ? ctx.editMessageText(msg, keyboard) : ctx.reply(msg, keyboard);
     }
 
     const keyboard = productListKeyboard(products);

@@ -170,7 +170,7 @@ function createSePayPaymentService({ db, bankAccounts, adminId }) {
         }
 
         const stock = db.prepare(`
-            SELECT id, data FROM stock
+            SELECT id, data, buyer_message FROM stock
             WHERE product_id = ? AND is_sold = 0
             ORDER BY id ASC LIMIT ?
         `).all(order.product_id, order.quantity);
@@ -211,7 +211,10 @@ function createSePayPaymentService({ db, bankAccounts, adminId }) {
                 orderId: order.id,
                 productName: order.product_name,
                 quantity: order.quantity,
-                accounts: stock.map((item) => item.data),
+                items: stock.map((item) => ({
+                    data: item.data,
+                    buyerMessage: item.buyer_message || null,
+                })),
             })
         );
         return { status: 'delivery_queued', orderId: order.id };

@@ -474,3 +474,57 @@ test('stock keyboard paginates inventories larger than one page', () => {
     assert.ok(callbacks.includes('nav_stock_product_9_0'));
     assert.ok(callbacks.includes('nav_stock_product_9_2'));
 });
+
+test('admin can save a public product photo with caption outside AI chat', async () => {
+    const registrations = [];
+    const handlers = {};
+    const bot = {
+        action(trigger, handler) { registrations.push({ trigger, handler }); },
+        on(type, handler) { handlers[type] = handler; },
+        telegram: { sendMessage: async () => {} },
+    };
+    registerNavigation(bot);
+
+    function findAction(callback) {
+        for (const registration of registrations) {
+            const match = registration.trigger instanceof RegExp
+                ? callback.match(registration.trigger)
+                : registration.trigger === callback ? [callback] : null;
+            if (match) return { ...registration, match };
+        }
+        assert.fail(`Missing action ${callback}`);
+    }
+
+    const originalAdminId = config.ADMIN_ID;
+    config.ADMIN_ID = 5487392216;
+    db.exec('BEGIN');
+    try {
+        const categoryId = db.prepare('INSERT INTO categories (name) VALUES (?)').run('Public content test').lastInsertRowid;
+        const productId = db.prepare('INSERT INTO products (category_id, name, price) VALUES (?, ?, ?)')
+            .run(categoryId, 'Windows Test', 1000).lastInsertRowid;
+        const session = {};
+        const action = findAction(`nav_edit_description_${productId}`);
+        await action.handler({
+            from: { id: config.ADMIN_ID }, session, match: action.match,
+            answerCbQuery() {}, replyWithHTML() {},
+        });
+        assert.deepEqual(session.navigation, { action: 'edit_product_description', productId: Number(productId) });
+
+        await handlers.photo({
+            from: { id: config.ADMIN_ID }, session,
+            message: {
+                caption: 'Mô tả công khai & an toàn',
+                photo: [{ file_id: 'small-photo' }, { file_id: 'large-photo' }],
+            },
+            replyWithHTML() {}, reply() {},
+        }, () => assert.fail('product photo reached next middleware'));
+
+        const saved = productService.getById(productId);
+        assert.equal(saved.public_description, 'Mô tả công khai & an toàn');
+        assert.equal(saved.public_image_file_id, 'large-photo');
+        assert.equal(session.navigation, undefined);
+    } finally {
+        db.exec('ROLLBACK');
+        config.ADMIN_ID = originalAdminId;
+    }
+});
