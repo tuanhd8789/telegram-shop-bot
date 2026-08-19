@@ -26,6 +26,8 @@ Administrators can update either a category or product from its management menu:
 
 The bot validates the ID and saves the name and icon together after step 2. An invalid ID leaves the edit session open and does not partially rename the record.
 
+Creating a product from **Product management → Create product** follows three steps: enter the name, enter the price, then enter the numeric custom emoji ID or `-`. The product is inserted only after the final value passes validation.
+
 ## Hướng dẫn nhanh
 
 Trong menu quản trị danh mục hoặc sản phẩm, chọn **Sửa tên & icon**:
@@ -34,5 +36,7 @@ Trong menu quản trị danh mục hoặc sản phẩm, chọn **Sửa tên & ic
 2. Nhập ID custom emoji chỉ gồm chữ số; gửi `-` nếu muốn bỏ icon.
 
 URL PNG/SVG không được nhận ở bước này vì Telegram không có trường URL ảnh cho icon của inline button. Ảnh bìa danh mục là một tin nhắn ảnh riêng, không phải icon trên nút.
+
+Khi **Tạo sản phẩm**, bot lần lượt hỏi tên, giá và ID custom emoji. Sản phẩm chỉ được lưu sau khi ID hợp lệ hoặc admin gửi `-` để không dùng icon.
 
 Tên và icon chỉ được lưu cùng lúc sau khi bước 2 hợp lệ. Telegram không hỗ trợ màu tùy chỉnh, opacity, kiểu chỉ có viền xanh hoặc chỉnh độ đậm của màu nút. Vì vậy, sản phẩm còn hàng dùng nền mặc định và không thêm dấu trạng thái để icon riêng nổi bật; nút hết hàng vẫn dùng nền đỏ. Sản phẩm chỉ liên hệ giữ nền trung tính và không bị gán nhầm là hết hàng. Danh mục còn hàng vẫn có dấu `🟢` nhỏ để phân biệt trạng thái trong grid không hiển thị số tồn.

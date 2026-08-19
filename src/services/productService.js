@@ -182,10 +182,10 @@ const productService = {
     /**
      * Add a new product
      */
-    addProduct(categoryId, name, price, emoji = '📦', promotion = null, contactOnly = false) {
+    addProduct(categoryId, name, price, emoji = '📦', promotion = null, contactOnly = false, customEmojiId = null) {
         const result = db.prepare(
-            'INSERT INTO products (category_id, name, price, emoji, promotion, contact_only) VALUES (?, ?, ?, ?, ?, ?)'
-        ).run(categoryId, name, price, emoji, promotion, contactOnly ? 1 : 0);
+            'INSERT INTO products (category_id, name, price, emoji, promotion, contact_only, custom_emoji_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        ).run(categoryId, name, price, emoji, promotion, contactOnly ? 1 : 0, customEmojiId);
         return result.lastInsertRowid;
     },
 };

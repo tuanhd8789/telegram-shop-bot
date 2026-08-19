@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [1.15.1] - 2026-08-19
+
+### Changed
+
+- Extend guided product creation to three steps: name, price, and numeric Telegram custom emoji ID (or `-` for no icon).
+- Validate the emoji ID before inserting the product, so an invalid URL or ID cannot create a partially configured product.
+
 ## [1.15.0] - 2026-08-19
 
 ### Added
