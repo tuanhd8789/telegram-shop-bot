@@ -65,7 +65,7 @@ const messages = {
 
         items.forEach((item, i) => {
             const normalized = typeof item === 'string' ? { data: item } : item;
-            msg += `${i + 1})\n${escapeHtml(normalized.data)}\n`;
+            msg += `${i + 1})${normalized.productName ? ` <b>${escapeHtml(normalized.productName)}</b>` : ''}\n${escapeHtml(normalized.data)}\n`;
             if (normalized.buyerMessage) {
                 msg += `💬 <b>Lời nhắn riêng:</b>\n${escapeHtml(normalized.buyerMessage)}\n`;
             }

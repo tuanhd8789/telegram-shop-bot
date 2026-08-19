@@ -5,7 +5,7 @@ function renderCustomerDelivery(payload) {
     const accounts = deliveryItems
         .map((item, index) => {
             const normalized = typeof item === 'string' ? { data: item } : item;
-            return `${index + 1})\n${escapeHtml(normalized.data)}` +
+            return `${index + 1})${normalized.productName ? ` <b>${escapeHtml(normalized.productName)}</b>` : ''}\n${escapeHtml(normalized.data)}` +
                 (normalized.buyerMessage
                     ? `\n💬 <b>Lời nhắn riêng:</b>\n${escapeHtml(normalized.buyerMessage)}`
                     : '');

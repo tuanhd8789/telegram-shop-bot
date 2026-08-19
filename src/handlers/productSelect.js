@@ -1,6 +1,8 @@
 const productService = require('../services/productService');
 const messages = require('../utils/messages');
-const { quantityKeyboard } = require('../utils/keyboard');
+const { quantityKeyboard, itemQuantityKeyboard, formatPrice } = require('../utils/keyboard');
+const catalogService = require('../services/catalogService');
+const { escapeHtml } = require('../utils/telegramMarkup');
 const config = require('../config');
 const { Markup } = require('telegraf');
 
@@ -22,6 +24,19 @@ async function replyProductCard(ctx, product, text, keyboard) {
 }
 
 module.exports = (bot) => {
+    bot.action(/^combo_(\d+)$/, async (ctx) => {
+        const combo = catalogService.getComboById(Number(ctx.match[1]));
+        if (!combo || !combo.is_active) return ctx.answerCbQuery('❌ Combo không tồn tại');
+        ctx.answerCbQuery();
+        if (!combo.display_stock) return ctx.reply(messages.noStock);
+        const components = combo.components.map((item) => `• ${escapeHtml(item.name)}`).join('\n');
+        return ctx.replyWithHTML(
+            `🎁 <b>${escapeHtml(combo.name)}</b>\n💰 Giá: ${formatPrice(combo.price)}/combo\n` +
+            `📊 Còn lại: ${combo.display_stock} combo\n\n<b>Gồm:</b>\n${components}\n\nChọn số lượng muốn mua:`,
+            itemQuantityKeyboard('combo_qty', combo.id, Math.min(combo.display_stock, 10))
+        );
+    });
+
     // Handle product selection
     bot.action(/^product_(\d+)$/, async (ctx) => {
         const productId = parseInt(ctx.match[1]);

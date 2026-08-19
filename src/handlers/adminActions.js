@@ -8,6 +8,8 @@ const { customEmojiHtml, escapeHtml } = require('../utils/telegramMarkup');
 const { showAdminStock, showProductStock } = require('./navigation');
 const settingsService = require('../services/settingsService');
 const { Markup } = require('telegraf');
+const db = require('../database');
+const { allocateOrderStock } = require('../services/fulfillmentService');
 
 // Admin state per user (for multi-step flows)
 const adminState = {};
@@ -345,6 +347,23 @@ module.exports = (bot) => {
         const order = orderService.getById(orderId);
         if (!order) return ctx.reply('❌ Đơn hàng không tồn tại');
 
+        if (order.combo_id) {
+            if (!['pending', 'paid'].includes(order.status)) {
+                return ctx.replyWithHTML(`❌ Đơn <b>#${orderId}</b> đã ở trạng thái <code>${order.status}</code>.`);
+            }
+            const allocation = allocateOrderStock(db, order);
+            if (!allocation.success) {
+                return ctx.replyWithHTML(
+                    `❌ Combo không còn đủ thành phần; tối đa <b>${allocation.available}</b> lượt mua. ` +
+                    `Bổ sung tồn kho rồi xác nhận lại; combo không hỗ trợ giao thủ công.`
+                );
+            }
+            const result = await deliverOrder(bot, orderId);
+            return ctx.replyWithHTML(result.success
+                ? `✅ Đơn combo <b>#${orderId}</b> đã xác nhận & giao hàng thành công!`
+                : `❌ Lỗi: ${result.error}`);
+        }
+
         if (order.status === 'paid') {
             const deliveryJob = orderService.getDeliveryJob(orderId);
             if (deliveryJob) {
@@ -393,9 +412,10 @@ module.exports = (bot) => {
     bot.command('orders', adminOnly, (ctx) => {
         const db = require('../database');
         const orders = db.prepare(`
-      SELECT o.*, p.name as product_name, u.full_name as user_name
+      SELECT o.*, COALESCE(c.name, p.name) as product_name, u.full_name as user_name
       FROM orders o
       JOIN products p ON o.product_id = p.id
+      LEFT JOIN combos c ON c.id = o.combo_id
       JOIN users u ON o.user_id = u.telegram_id
       ORDER BY o.created_at DESC
       LIMIT 20

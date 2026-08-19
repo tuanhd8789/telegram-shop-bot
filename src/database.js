@@ -31,7 +31,9 @@ db.exec(`
     custom_emoji_id TEXT,
     sort_order INTEGER DEFAULT 0,
     image_url TEXT,
-    is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))
+    parent_id INTEGER,
+    is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+    FOREIGN KEY (parent_id) REFERENCES categories(id)
   );
 
   CREATE TABLE IF NOT EXISTS products (
@@ -48,6 +50,7 @@ db.exec(`
     contact_only INTEGER DEFAULT 0,
     contact_url TEXT,
     sheet_stock INTEGER DEFAULT 0,
+    sort_order INTEGER DEFAULT 0,
     is_active INTEGER DEFAULT 1,
     FOREIGN KEY (category_id) REFERENCES categories(id)
   );
@@ -67,6 +70,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     product_id INTEGER NOT NULL,
+    combo_id INTEGER,
     quantity INTEGER NOT NULL,
     total_price INTEGER NOT NULL,
     payment_code TEXT UNIQUE,
@@ -76,6 +80,38 @@ db.exec(`
     delivered_at DATETIME,
     FOREIGN KEY (user_id) REFERENCES users(telegram_id),
     FOREIGN KEY (product_id) REFERENCES products(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS catalog_sections (
+    section_key TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    emoji TEXT DEFAULT '🔥',
+    custom_emoji_id TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS hot_products (
+    product_id INTEGER PRIMARY KEY,
+    sort_order INTEGER DEFAULT 0,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS combos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    price INTEGER NOT NULL,
+    emoji TEXT DEFAULT '🎁',
+    custom_emoji_id TEXT,
+    sort_order INTEGER DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))
+  );
+
+  CREATE TABLE IF NOT EXISTS combo_products (
+    combo_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    sort_order INTEGER DEFAULT 0,
+    PRIMARY KEY (combo_id, product_id),
+    FOREIGN KEY (combo_id) REFERENCES combos(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
   );
 
   CREATE TABLE IF NOT EXISTS payment_transactions (
@@ -165,7 +201,43 @@ try { db.exec('ALTER TABLE stock ADD COLUMN buyer_message TEXT'); } catch (e) { 
 try { db.exec('ALTER TABLE categories ADD COLUMN image_url TEXT'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE categories ADD COLUMN custom_emoji_id TEXT'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE categories ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))'); } catch (e) { /* already exists */ }
+try { db.exec('ALTER TABLE categories ADD COLUMN parent_id INTEGER REFERENCES categories(id)'); } catch (e) { /* already exists */ }
+try { db.exec('ALTER TABLE products ADD COLUMN sort_order INTEGER DEFAULT 0'); } catch (e) { /* already exists */ }
+try { db.exec('ALTER TABLE orders ADD COLUMN combo_id INTEGER'); } catch (e) { /* already exists */ }
 try { db.exec('ALTER TABLE payment_transactions ADD COLUMN topup_id INTEGER'); } catch (e) { /* already exists */ }
+
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_categories_parent_sort ON categories(parent_id, sort_order, id);
+  CREATE INDEX IF NOT EXISTS idx_products_category_sort ON products(category_id, sort_order, id);
+  CREATE TRIGGER IF NOT EXISTS categories_two_levels_insert
+  BEFORE INSERT ON categories
+  WHEN NEW.parent_id IS NOT NULL
+    AND EXISTS (SELECT 1 FROM categories parent WHERE parent.id = NEW.parent_id AND parent.parent_id IS NOT NULL)
+  BEGIN
+    SELECT RAISE(ABORT, 'category hierarchy is limited to two levels');
+  END;
+  CREATE TRIGGER IF NOT EXISTS categories_two_levels_update
+  BEFORE UPDATE OF parent_id ON categories
+  WHEN NEW.parent_id IS NOT NULL AND (
+    NEW.parent_id = NEW.id
+    OR EXISTS (SELECT 1 FROM categories parent WHERE parent.id = NEW.parent_id AND parent.parent_id IS NOT NULL)
+    OR EXISTS (SELECT 1 FROM categories child WHERE child.parent_id = NEW.id)
+  )
+  BEGIN
+    SELECT RAISE(ABORT, 'category hierarchy is limited to two levels');
+  END;
+`);
+
+db.prepare(`
+  INSERT INTO catalog_sections (section_key, name, emoji)
+  VALUES ('hot', 'Sản phẩm đang hot', '🔥')
+  ON CONFLICT(section_key) DO NOTHING
+`).run();
+db.prepare(`
+  INSERT INTO catalog_sections (section_key, name, emoji)
+  VALUES ('combos', 'Combo sản phẩm', '🎁')
+  ON CONFLICT(section_key) DO NOTHING
+`).run();
 
 // Seed data - only if categories table is empty
 const catCount = db.prepare('SELECT COUNT(*) as c FROM categories').get();

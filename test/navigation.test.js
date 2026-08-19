@@ -79,6 +79,32 @@ test('category availability follows active local and sheet stock', () => {
     }
 });
 
+test('two-level categories expose child products through the parent and honor display order', () => {
+    db.exec('BEGIN');
+    try {
+        const parentId = Number(db.prepare(
+            'INSERT INTO categories (name, sort_order) VALUES (?, ?)'
+        ).run('Parent test', 9000).lastInsertRowid);
+        const childId = Number(db.prepare(
+            'INSERT INTO categories (name, parent_id, sort_order) VALUES (?, ?, ?)'
+        ).run('Child test', parentId, 2).lastInsertRowid);
+        const first = Number(db.prepare(
+            'INSERT INTO products (category_id, name, price, sort_order) VALUES (?, ?, ?, ?)'
+        ).run(childId, 'Second product', 1000, 20).lastInsertRowid);
+        const second = Number(db.prepare(
+            'INSERT INTO products (category_id, name, price, sort_order) VALUES (?, ?, ?, ?)'
+        ).run(childId, 'First product', 1000, 10).lastInsertRowid);
+
+        assert.deepEqual(productService.getChildCategories(parentId).map((item) => item.id), [childId]);
+        assert.deepEqual(productService.getByCategoryTree(parentId).map((item) => item.id), [second, first]);
+        assert.throws(() => db.prepare(
+            'INSERT INTO categories (name, parent_id) VALUES (?, ?)'
+        ).run('Forbidden third level', childId), /two levels/);
+    } finally {
+        db.exec('ROLLBACK');
+    }
+});
+
 test('customer reply keyboard stays available without forcing itself open', () => {
     const keyboard = replyMenuKeyboard(false);
     const customerLabels = labels(keyboard);
@@ -323,6 +349,16 @@ test('admin category buttons rename, hide/show and safely delete empty categorie
             reply: (...args) => { renameReplies.push(args); },
             replyWithHTML: (...args) => { renameReplies.push(args); },
         }, () => assert.fail('category icon reached next middleware'));
+        assert.equal(renameSession.navigation.action, 'edit_category_parent');
+        assert.equal(productService.getCategoryById(categoryId).name, 'Category UI test');
+
+        await textHandler({
+            from: { id: config.ADMIN_ID },
+            session: renameSession,
+            message: { text: '-' },
+            reply: (...args) => { renameReplies.push(args); },
+            replyWithHTML: (...args) => { renameReplies.push(args); },
+        }, () => assert.fail('category parent reached next middleware'));
         const renamedCategory = productService.getCategoryById(categoryId);
         assert.equal(renamedCategory.name, 'Category renamed & safe');
         assert.equal(renamedCategory.custom_emoji_id, '5879540508572783398');

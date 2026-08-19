@@ -3,10 +3,11 @@ const config = require('../config');
 const db = require('../database');
 const userService = require('../services/userService');
 const productService = require('../services/productService');
+const catalogService = require('../services/catalogService');
 const orderService = require('../services/orderService');
 const settingsService = require('../services/settingsService');
 const messages = require('../utils/messages');
-const { formatPrice, productListKeyboard } = require('../utils/keyboard');
+const { formatPrice, productListKeyboard, comboListKeyboard } = require('../utils/keyboard');
 const {
     callbackWithCustomEmoji,
     customEmojiHtml,
@@ -83,8 +84,16 @@ function showMainMenu(ctx, text) {
     );
 }
 
-function categoriesKeyboard(categories = productService.getCategories()) {
+function categoriesKeyboard(categories = productService.getRootCategories()) {
     const rows = [];
+    if (arguments.length === 0) {
+        const hot = catalogService.getSection('hot');
+        const combos = catalogService.getSection('combos');
+        rows.push([
+            callbackWithCustomEmoji(hot.custom_emoji_id ? hot.name : `${hot.emoji} ${hot.name}`, 'nav_hot', hot.custom_emoji_id),
+            callbackWithCustomEmoji(combos.custom_emoji_id ? combos.name : `${combos.emoji} ${combos.name}`, 'nav_combos', combos.custom_emoji_id),
+        ]);
+    }
     for (let index = 0; index < categories.length; index += CATEGORY_GRID_COLUMNS) {
         rows.push(categories.slice(index, index + CATEGORY_GRID_COLUMNS).map((category) => {
             const availability = category.has_stock ? '🟢 ' : '';
@@ -129,6 +138,7 @@ function adminProductMenuKeyboard() {
         [Markup.button.callback('➕ Tạo sản phẩm', 'nav_admin_add_product')],
         [Markup.button.callback('💵 Sửa giá', 'nav_admin_edit_price'), Markup.button.callback('✏️ Sửa tên & icon', 'nav_admin_edit_name')],
         [Markup.button.callback('📝 Sửa mô tả & ảnh', 'nav_admin_edit_description')],
+        [Markup.button.callback('↕️ Sắp xếp sản phẩm', 'nav_admin_sort_product')],
         [Markup.button.callback('🔁 Bật/tắt', 'nav_admin_toggle_product'), Markup.button.callback('🗑 Xóa', 'nav_admin_delete_product')],
         [Markup.button.url('❓ Hướng dẫn nội dung', 'https://github.com/tuanhd8789/telegram-shop-bot/blob/main/docs/product-content-and-stock-messages.md')],
         [Markup.button.callback('↩️ Quản trị', 'nav_admin')],
@@ -139,9 +149,13 @@ function adminCategoryMenuKeyboard() {
     return Markup.inlineKeyboard([
         [Markup.button.callback('➕ Tạo danh mục', 'nav_admin_add_category')],
         [Markup.button.callback('✏️ Sửa tên & icon', 'nav_admin_edit_category_name')],
+        [Markup.button.callback('↕️ Sắp xếp danh mục', 'nav_admin_sort_category')],
         [Markup.button.callback('🙈 Ẩn/hiện danh mục', 'nav_admin_toggle_category')],
         [Markup.button.callback('🗑 Xóa danh mục', 'nav_admin_delete_category')],
         [Markup.button.callback('🗂 Xem danh mục', 'nav_admin_categories')],
+        [Markup.button.callback('🔥 Sản phẩm đang hot', 'nav_admin_hot')],
+        [Markup.button.callback('🎁 Combo sản phẩm', 'nav_admin_combos')],
+        [Markup.button.url('❓ Hướng dẫn danh mục & combo', 'https://github.com/tuanhd8789/telegram-shop-bot/blob/main/docs/catalog-hierarchy-hot-combos.md')],
         [Markup.button.callback('↩️ Quản trị', 'nav_admin')],
     ]);
 }
@@ -166,7 +180,8 @@ function productPicker(prefix, title) {
     const products = db.prepare(`
         SELECT p.*,
           (SELECT COUNT(*) FROM stock s WHERE s.product_id = p.id AND s.is_sold = 0) stock_count
-        FROM products p ORDER BY p.category_id, p.id
+        FROM products p LEFT JOIN categories c ON c.id = p.category_id
+        ORDER BY COALESCE(c.sort_order, 0), p.sort_order, p.id
     `).all();
     const rows = products.map((product) => [
         Markup.button.callback(`#${product.id} ${product.name}`, `${prefix}_${product.id}`),
@@ -190,6 +205,43 @@ function categoryPicker(prefix, title) {
     };
 }
 
+function membershipKeyboard(items, prefix, backCallback) {
+    const rows = items.map((item) => [
+        Markup.button.callback(`${item.selected ? '✅' : '➕'} #${item.id} ${item.name}`, `${prefix}_${item.id}`),
+    ]);
+    rows.push([Markup.button.callback('↩️ Quay lại', backCallback)]);
+    return Markup.inlineKeyboard(rows);
+}
+
+function hotAdminKeyboard() {
+    return Markup.inlineKeyboard([
+        [Markup.button.callback('✏️ Sửa tên & icon', 'nav_hot_edit')],
+        [Markup.button.callback('➕/➖ Thêm hoặc bỏ sản phẩm', 'nav_hot_members')],
+        [Markup.button.callback('↩️ Quản lý danh mục', 'nav_admin_category_menu')],
+    ]);
+}
+
+function comboAdminKeyboard() {
+    const combos = catalogService.getCombos({ includeInactive: true });
+    const rows = [[Markup.button.callback('➕ Tạo combo', 'nav_combo_add')]];
+    for (const combo of combos) {
+        rows.push([Markup.button.callback(
+            `🎁 #${combo.id} ${combo.name} (${combo.component_count} SP)`,
+            `nav_combo_manage_${combo.id}`
+        )]);
+    }
+    rows.push([Markup.button.callback('↩️ Quản lý danh mục', 'nav_admin_category_menu')]);
+    return Markup.inlineKeyboard(rows);
+}
+
+function comboManageKeyboard(comboId) {
+    return Markup.inlineKeyboard([
+        [Markup.button.callback('✏️ Sửa tên, icon & giá', `nav_combo_edit_${comboId}`)],
+        [Markup.button.callback('➕/➖ Sản phẩm thành phần', `nav_combo_members_${comboId}`)],
+        [Markup.button.callback('↩️ Danh sách combo', 'nav_admin_combos')],
+    ]);
+}
+
 function showAdminProductMenu(ctx) {
     return ctx.replyWithHTML('📦 <b>QUẢN LÝ SẢN PHẨM</b>', adminProductMenuKeyboard());
 }
@@ -203,7 +255,7 @@ function showAdminProductList(ctx) {
         SELECT p.*, c.name category_name,
           (SELECT COUNT(*) FROM stock s WHERE s.product_id = p.id AND s.is_sold = 0) stock_count
         FROM products p LEFT JOIN categories c ON c.id = p.category_id
-        ORDER BY p.category_id, p.id
+        ORDER BY COALESCE(c.sort_order, 0), p.sort_order, p.id
     `).all();
     return ctx.replyWithHTML(products.map((item) =>
         `${item.is_active ? '🟢' : '🔴'} <b>#${item.id}</b> ${item.name}\n` +
@@ -311,7 +363,11 @@ function showStockItem(ctx, stockId) {
 }
 
 function showAdminOrders(ctx) {
-    const orders = db.prepare(`SELECT o.*, p.name product_name FROM orders o JOIN products p ON p.id=o.product_id ORDER BY o.id DESC LIMIT 20`).all();
+    const orders = db.prepare(`
+        SELECT o.*, COALESCE(c.name, p.name) product_name FROM orders o
+        JOIN products p ON p.id=o.product_id LEFT JOIN combos c ON c.id=o.combo_id
+        ORDER BY o.id DESC LIMIT 20
+    `).all();
     return ctx.replyWithHTML(orders.map((item) =>
         `<b>#${item.id}</b> ${item.product_name} × ${item.quantity} — ${formatPrice(item.total_price)} — <code>${item.status}</code>`
     ).join('\n') || '📋 Chưa có đơn hàng.');
@@ -396,17 +452,68 @@ function registerNavigation(bot, { aiController } = {}) {
         ctx.answerCbQuery();
         return showCategories(ctx);
     });
+    bot.action('nav_hot', (ctx) => {
+        ctx.answerCbQuery();
+        const section = catalogService.getSection('hot');
+        const products = catalogService.getHotProducts();
+        return ctx.replyWithHTML(
+            `🔥 <b>${escapeHtml(section.name)}</b>` + (products.length ? '' : '\n\nChưa có sản phẩm.'),
+            productListKeyboard(products, { refreshCallback: 'nav_hot', backCallback: 'nav_categories' })
+        );
+    });
+    bot.action('nav_combos', (ctx) => {
+        ctx.answerCbQuery();
+        const section = catalogService.getSection('combos');
+        const combos = catalogService.getCombos();
+        return ctx.replyWithHTML(
+            `🎁 <b>${escapeHtml(section.name)}</b>` + (combos.length ? '' : '\n\nChưa có combo.'),
+            comboListKeyboard(combos)
+        );
+    });
+    bot.action(/^nav_category_all_(\d+)$/, (ctx) => {
+        ctx.answerCbQuery();
+        const category = productService.getCategoryById(Number(ctx.match[1]));
+        if (!category || !category.is_active) return ctx.reply('❌ Danh mục không tồn tại.');
+        const products = productService.getByCategoryTree(category.id);
+        return ctx.replyWithHTML(
+            `🛍 <b>Tất cả sản phẩm trong ${escapeHtml(category.name)}</b>`,
+            productListKeyboard(products, {
+                refreshCallback: `nav_category_all_${category.id}`,
+                backCallback: `nav_category_${category.id}`,
+            })
+        );
+    });
     bot.action(/^nav_category_(\d+)$/, (ctx) => {
         ctx.answerCbQuery();
         const category = productService.getCategories().find((item) => item.id === Number(ctx.match[1]));
         if (!category) return ctx.reply('❌ Danh mục không tồn tại.');
+        const children = productService.getChildCategories(category.id);
+        if (children.length) {
+            const rows = [];
+            for (let index = 0; index < children.length; index += 2) {
+                rows.push(children.slice(index, index + 2).map((child) => callbackWithCustomEmoji(
+                    child.custom_emoji_id ? child.name : `${child.emoji || '📂'} ${child.name}`,
+                    `nav_category_${child.id}`,
+                    child.custom_emoji_id
+                )));
+            }
+            rows.push([Markup.button.callback('🛍 Xem tất cả sản phẩm', `nav_category_all_${category.id}`)]);
+            rows.push([
+                Markup.button.callback('🔄 Làm mới', `nav_category_${category.id}`),
+                Markup.button.callback('↩️ Quay lại', 'nav_categories'),
+            ]);
+            return ctx.replyWithHTML(
+                `${customEmojiHtml(category.custom_emoji_id, category.emoji || '📂')} <b>${escapeHtml(category.name)}</b>\n\nChọn danh mục con hoặc xem tất cả:`,
+                Markup.inlineKeyboard(rows)
+            );
+        }
         const products = productService.getByCategory(category.id);
         const sendProducts = () => ctx.replyWithHTML(
             `${customEmojiHtml(category.custom_emoji_id, category.emoji || '📂')} <b>${escapeHtml(category.name)}</b>` +
                 (products.length ? '' : '\n\n❌ Danh mục này chưa có sản phẩm.'),
             productListKeyboard(products, {
                 refreshCallback: `nav_category_${category.id}`,
-                backCallback: 'nav_categories',
+                backCallback: category.parent_id ? `nav_category_${category.parent_id}` : 'nav_categories',
             })
         );
         if (category.image_url) {
@@ -438,6 +545,20 @@ function registerNavigation(bot, { aiController } = {}) {
         ctx.answerCbQuery();
         const picker = productPicker('nav_edit_price', '💵 Chọn sản phẩm cần sửa giá:');
         return ctx.reply(picker.text, picker.keyboard);
+    });
+    bot.action('nav_admin_sort_product', (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        const picker = productPicker('nav_sort_product', '↕️ Chọn sản phẩm cần đặt thứ tự:');
+        return ctx.reply(picker.text, picker.keyboard);
+    });
+    bot.action(/^nav_sort_product_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        const product = productService.getById(Number(ctx.match[1]));
+        if (!product) return ctx.answerCbQuery('❌ Sản phẩm không tồn tại');
+        ctx.answerCbQuery();
+        ctx.session.navigation = { action: 'sort_product', productId: product.id };
+        return ctx.replyWithHTML(`↕️ Gửi số thứ tự mới cho <b>${escapeHtml(product.name)}</b> (số nhỏ hiện trước).`);
     });
     bot.action(/^nav_edit_price_(\d+)$/, (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
@@ -518,8 +639,9 @@ function registerNavigation(bot, { aiController } = {}) {
         const product = productService.getById(productId);
         if (!product) return ctx.answerCbQuery('❌ Sản phẩm không tồn tại');
         const orderCount = db.prepare('SELECT COUNT(*) count FROM orders WHERE product_id = ?').get(productId).count;
-        if (orderCount > 0) {
-            return ctx.answerCbQuery('Không thể xóa sản phẩm đã có đơn; hãy tắt sản phẩm.', { show_alert: true });
+        const comboCount = db.prepare('SELECT COUNT(*) count FROM combo_products WHERE product_id = ?').get(productId).count;
+        if (orderCount > 0 || comboCount > 0) {
+            return ctx.answerCbQuery('Không thể xóa sản phẩm đã có đơn hoặc đang thuộc combo; hãy tắt sản phẩm.', { show_alert: true });
         }
         const remove = db.transaction(() => {
             db.prepare('DELETE FROM stock WHERE product_id = ?').run(productId);
@@ -544,7 +666,7 @@ function registerNavigation(bot, { aiController } = {}) {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
         ctx.answerCbQuery();
         ctx.session.navigation = { action: 'category_name' };
-        return ctx.reply('➕ Gửi tên danh mục mới. Gõ /cancel để hủy.');
+        return ctx.reply('➕ Bước 1/3: Gửi tên danh mục mới. Gõ /cancel để hủy.');
     });
     bot.action('nav_admin_edit_category_name', (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
@@ -558,7 +680,21 @@ function registerNavigation(bot, { aiController } = {}) {
         if (!category) return ctx.answerCbQuery('❌ Danh mục không tồn tại');
         ctx.answerCbQuery();
         ctx.session.navigation = { action: 'edit_category_name', categoryId: category.id };
-        return ctx.replyWithHTML(`✏️ Bước 1/2: Gửi tên mới cho danh mục <b>${escapeHtml(category.name)}</b>. Gõ /cancel để hủy.`);
+        return ctx.replyWithHTML(`✏️ Bước 1/3: Gửi tên mới cho danh mục <b>${escapeHtml(category.name)}</b>. Gõ /cancel để hủy.`);
+    });
+    bot.action('nav_admin_sort_category', (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        const picker = categoryPicker('nav_sort_category', '↕️ Chọn danh mục cần đặt thứ tự:');
+        return ctx.reply(picker.text, picker.keyboard);
+    });
+    bot.action(/^nav_sort_category_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        const category = productService.getCategoryById(Number(ctx.match[1]));
+        if (!category) return ctx.answerCbQuery('❌ Danh mục không tồn tại');
+        ctx.answerCbQuery();
+        ctx.session.navigation = { action: 'sort_category', categoryId: category.id };
+        return ctx.replyWithHTML(`↕️ Gửi số thứ tự mới cho <b>${escapeHtml(category.name)}</b> (số nhỏ hiện trước).`);
     });
     bot.action('nav_admin_toggle_category', (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
@@ -591,9 +727,9 @@ function registerNavigation(bot, { aiController } = {}) {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
         const category = productService.getCategoryById(Number(ctx.match[1]));
         if (!category) return ctx.answerCbQuery('❌ Danh mục không tồn tại');
-        if (category.product_count > 0) {
+        if (category.product_count > 0 || category.child_count > 0) {
             return ctx.answerCbQuery(
-                `Danh mục còn ${category.product_count} sản phẩm. Hãy ẩn danh mục hoặc chuyển/xóa sản phẩm trước.`,
+                `Danh mục còn ${category.product_count} sản phẩm và ${category.child_count} mục con. Hãy xử lý hết trước.`,
                 { show_alert: true }
             );
         }
@@ -612,8 +748,10 @@ function registerNavigation(bot, { aiController } = {}) {
         if (!category) return ctx.answerCbQuery('❌ Danh mục không tồn tại');
         const result = db.prepare(`
             DELETE FROM categories
-            WHERE id = ? AND NOT EXISTS (SELECT 1 FROM products WHERE category_id = ?)
-        `).run(category.id, category.id);
+            WHERE id = ?
+              AND NOT EXISTS (SELECT 1 FROM products WHERE category_id = ?)
+              AND NOT EXISTS (SELECT 1 FROM categories WHERE parent_id = ?)
+        `).run(category.id, category.id, category.id);
         if (result.changes !== 1) {
             return ctx.answerCbQuery('Không thể xóa: danh mục vừa có sản phẩm hoặc đã thay đổi.', { show_alert: true });
         }
@@ -622,6 +760,84 @@ function registerNavigation(bot, { aiController } = {}) {
             `🗑 Đã xóa danh mục <b>${escapeHtml(category.name)}</b>.`,
             Markup.inlineKeyboard([[Markup.button.callback('↩️ Quản lý danh mục', 'nav_admin_category_menu')]])
         );
+    });
+    bot.action('nav_admin_hot', (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        const section = catalogService.getSection('hot');
+        return ctx.replyWithHTML(`🔥 <b>${escapeHtml(section.name)}</b>`, hotAdminKeyboard());
+    });
+    bot.action('nav_hot_edit', (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        ctx.session.navigation = { action: 'hot_name' };
+        return ctx.reply('🔥 Bước 1/2: Gửi tên mới cho mục sản phẩm đang hot.');
+    });
+    bot.action('nav_hot_members', (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        return ctx.reply('🔥 Bấm sản phẩm để thêm/bỏ khỏi mục hot:',
+            membershipKeyboard(catalogService.listHotMembership(), 'nav_hot_toggle', 'nav_admin_hot'));
+    });
+    bot.action(/^nav_hot_toggle_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        const selected = catalogService.toggleHotProduct(Number(ctx.match[1]));
+        ctx.answerCbQuery(selected ? '✅ Đã thêm vào mục hot' : '➖ Đã bỏ khỏi mục hot');
+        return ctx.editMessageReplyMarkup(
+            membershipKeyboard(catalogService.listHotMembership(), 'nav_hot_toggle', 'nav_admin_hot').reply_markup
+        );
+    });
+    bot.action('nav_admin_combos', (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        return ctx.replyWithHTML('🎁 <b>QUẢN LÝ COMBO</b>', comboAdminKeyboard());
+    });
+    bot.action('nav_combo_add', (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        ctx.answerCbQuery();
+        ctx.session.navigation = { action: 'combo_name', mode: 'create' };
+        return ctx.reply('🎁 Bước 1/3: Gửi tên combo.');
+    });
+    bot.action(/^nav_combo_manage_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        const combo = catalogService.getComboById(Number(ctx.match[1]));
+        if (!combo) return ctx.answerCbQuery('❌ Combo không tồn tại');
+        ctx.answerCbQuery();
+        return ctx.replyWithHTML(
+            `🎁 <b>#${combo.id} ${escapeHtml(combo.name)}</b>\n` +
+            `💵 ${formatPrice(combo.price)} — 📦 ${combo.display_stock} — ${combo.component_count} sản phẩm`,
+            comboManageKeyboard(combo.id)
+        );
+    });
+    bot.action(/^nav_combo_edit_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        const combo = catalogService.getComboById(Number(ctx.match[1]));
+        if (!combo) return ctx.answerCbQuery('❌ Combo không tồn tại');
+        ctx.answerCbQuery();
+        ctx.session.navigation = { action: 'combo_name', mode: 'edit', comboId: combo.id };
+        return ctx.replyWithHTML(`🎁 Bước 1/3: Gửi tên mới cho <b>${escapeHtml(combo.name)}</b>.`);
+    });
+    bot.action(/^nav_combo_members_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        const combo = catalogService.getComboById(Number(ctx.match[1]));
+        if (!combo) return ctx.answerCbQuery('❌ Combo không tồn tại');
+        ctx.answerCbQuery();
+        return ctx.reply('🎁 Bấm sản phẩm để thêm/bỏ khỏi combo:', membershipKeyboard(
+            catalogService.listComboMembership(combo.id),
+            `nav_combo_toggle_${combo.id}`,
+            `nav_combo_manage_${combo.id}`
+        ));
+    });
+    bot.action(/^nav_combo_toggle_(\d+)_(\d+)$/, (ctx) => {
+        if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
+        const comboId = Number(ctx.match[1]);
+        const selected = catalogService.toggleComboProduct(comboId, Number(ctx.match[2]));
+        ctx.answerCbQuery(selected ? '✅ Đã thêm vào combo' : '➖ Đã bỏ khỏi combo');
+        return ctx.editMessageReplyMarkup(membershipKeyboard(
+            catalogService.listComboMembership(comboId),
+            `nav_combo_toggle_${comboId}`,
+            `nav_combo_manage_${comboId}`
+        ).reply_markup);
     });
     bot.action('nav_admin_add_product', (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
@@ -872,18 +1088,34 @@ function registerNavigation(bot, { aiController } = {}) {
         }
         if (state.action === 'category_name') {
             ctx.session.navigation = { action: 'category_icon', name: text };
-            return ctx.reply('🖼 Gửi một emoji hoặc đường dẫn ảnh công khai PNG/JPG. Gửi dấu - để dùng 📦 mặc định.');
+            return ctx.reply('🖼 Bước 2/3: Gửi ID custom emoji bằng số. Gửi dấu - nếu không dùng icon.');
         }
         if (state.action === 'category_icon') {
-            const isUrl = /^https:\/\//i.test(text);
-            const emoji = text === '-' || isUrl ? '📦' : Array.from(text)[0];
-            const imageUrl = isUrl ? text : null;
-            const sortOrder = db.prepare('SELECT COALESCE(MAX(sort_order), 0) + 1 value FROM categories').get().value;
-            const result = db.prepare('INSERT INTO categories (name, emoji, sort_order, image_url) VALUES (?, ?, ?, ?)')
-                .run(state.name.slice(0, 100), emoji, sortOrder, imageUrl);
+            const customEmojiId = text === '-' ? null : normalizeCustomEmojiId(text);
+            if (text !== '-' && !customEmojiId) return ctx.reply('❌ ID custom emoji phải là số. Gửi lại hoặc gửi dấu -.');
+            const roots = productService.getRootCategories({ includeInactive: true });
+            ctx.session.navigation = { action: 'category_parent', name: state.name, customEmojiId };
+            return ctx.replyWithHTML(
+                `🗂 Bước 3/3: Gửi ID danh mục cha. Gửi <code>-</code> để tạo danh mục cấp 1.\n\n` +
+                (roots.map((item) => `<code>${item.id}</code> — ${escapeHtml(item.name)}`).join('\n') || 'Chưa có danh mục cấp 1.')
+            );
+        }
+        if (state.action === 'category_parent') {
+            const parentId = text === '-' ? null : Number(text);
+            const parent = parentId ? productService.getCategoryById(parentId) : null;
+            if (text !== '-' && (!Number.isSafeInteger(parentId) || !parent || parent.parent_id != null)) {
+                return ctx.reply('❌ Danh mục cha phải là ID của một danh mục cấp 1, hoặc gửi dấu -.');
+            }
+            const sortOrder = db.prepare('SELECT COALESCE(MAX(sort_order), 0) + 1 value FROM categories WHERE parent_id IS ?')
+                .get(parentId).value;
+            const result = db.prepare(`
+                INSERT INTO categories (name, emoji, custom_emoji_id, sort_order, parent_id)
+                VALUES (?, '📦', ?, ?, ?)
+            `).run(state.name.slice(0, 100), state.customEmojiId, sortOrder, parentId);
             delete ctx.session.navigation;
             return ctx.replyWithHTML(
-                `✅ Đã tạo danh mục <b>#${result.lastInsertRowid}</b>: ${emoji} ${escapeHtml(state.name.slice(0, 100))}`,
+                `✅ Đã tạo danh mục <b>#${result.lastInsertRowid}</b>: ${escapeHtml(state.name.slice(0, 100))}` +
+                (parent ? ` trong <b>${escapeHtml(parent.name)}</b>` : ' ở cấp 1.'),
                 Markup.inlineKeyboard([[Markup.button.callback('↩️ Quản lý danh mục', 'nav_admin_category_menu')]])
             );
         }
@@ -896,7 +1128,7 @@ function registerNavigation(bot, { aiController } = {}) {
             const name = text.slice(0, 100);
             if (!name) return ctx.reply('❌ Tên danh mục không được để trống.');
             ctx.session.navigation = { action: 'edit_category_custom_emoji', categoryId: category.id, name };
-            return ctx.reply('🖼 Bước 2/2: Gửi ID custom emoji bằng số. Gửi dấu - để bỏ icon. URL PNG/SVG không thể dùng làm icon nút Telegram.');
+            return ctx.reply('🖼 Bước 2/3: Gửi ID custom emoji bằng số. Gửi dấu - để bỏ icon.');
         }
         if (state.action === 'edit_category_custom_emoji') {
             const category = productService.getCategoryById(state.categoryId);
@@ -908,13 +1140,35 @@ function registerNavigation(bot, { aiController } = {}) {
             if (text !== '-' && !customEmojiId) {
                 return ctx.reply('❌ Icon nút chỉ nhận ID custom emoji bằng số, không nhận URL PNG/SVG. Gửi lại hoặc gửi dấu - để bỏ icon.');
             }
-            const result = db.prepare('UPDATE categories SET name = ?, custom_emoji_id = ? WHERE id = ?')
-                .run(state.name, customEmojiId, category.id);
+            const roots = productService.getRootCategories({ includeInactive: true })
+                .filter((item) => item.id !== category.id);
+            ctx.session.navigation = {
+                action: 'edit_category_parent', categoryId: category.id, name: state.name, customEmojiId,
+            };
+            return ctx.replyWithHTML(
+                `🗂 Bước 3/3: Gửi ID danh mục cha. Gửi <code>-</code> để không thay đổi; gửi <code>0</code> để chuyển thành cấp 1.\n\n` +
+                (roots.map((item) => `<code>${item.id}</code> — ${escapeHtml(item.name)}`).join('\n') || 'Không có danh mục cha phù hợp.')
+            );
+        }
+        if (state.action === 'edit_category_parent') {
+            const category = productService.getCategoryById(state.categoryId);
+            if (!category) { delete ctx.session.navigation; return ctx.reply('❌ Danh mục không tồn tại.'); }
+            let parentId = category.parent_id;
+            if (text !== '-') parentId = text === '0' ? null : Number(text);
+            const parent = parentId ? productService.getCategoryById(parentId) : null;
+            if (parentId && (!Number.isSafeInteger(parentId) || !parent || parent.parent_id != null || parent.id === category.id)) {
+                return ctx.reply('❌ Danh mục cha phải là ID của một danh mục cấp 1, 0 để bỏ cha, hoặc - để giữ nguyên.');
+            }
+            if (parentId && category.child_count > 0) {
+                return ctx.reply('❌ Danh mục đang có mục con nên không thể chuyển xuống cấp 2.');
+            }
+            const result = db.prepare('UPDATE categories SET name = ?, custom_emoji_id = ?, parent_id = ? WHERE id = ?')
+                .run(state.name, state.customEmojiId, parentId, category.id);
             delete ctx.session.navigation;
             if (result.changes !== 1) return ctx.reply('❌ Không thể sửa danh mục; vui lòng tải lại.');
             return ctx.replyWithHTML(
-                `✅ Đã sửa danh mục <b>${escapeHtml(category.name)}</b> → ` +
-                `<b>${escapeHtml(state.name)}</b>. Icon: ${customEmojiId ? `<code>${customEmojiId}</code>` : 'không dùng'}.`,
+                `✅ Đã sửa danh mục thành <b>${escapeHtml(state.name)}</b>` +
+                (parent ? `, cha: <b>${escapeHtml(parent.name)}</b>.` : ', cấp 1.'),
                 Markup.inlineKeyboard([[Markup.button.callback('↩️ Quản lý danh mục', 'nav_admin_category_menu')]])
             );
         }
@@ -946,6 +1200,58 @@ function registerNavigation(bot, { aiController } = {}) {
                 if (!(error instanceof settingsService.SettingsError)) throw error;
                 return ctx.reply(`❌ ${error.message}\nGõ /cancel để hủy hoặc gửi lại.`);
             }
+        }
+        if (state.action === 'sort_category' || state.action === 'sort_product') {
+            const sortOrder = Number(text);
+            if (!Number.isSafeInteger(sortOrder) || sortOrder < 0 || sortOrder > 100000) {
+                return ctx.reply('❌ Thứ tự phải là số nguyên từ 0 đến 100000.');
+            }
+            const isCategory = state.action === 'sort_category';
+            const result = db.prepare(`UPDATE ${isCategory ? 'categories' : 'products'} SET sort_order = ? WHERE id = ?`)
+                .run(sortOrder, isCategory ? state.categoryId : state.productId);
+            delete ctx.session.navigation;
+            return ctx.reply(result.changes === 1 ? `✅ Đã đặt thứ tự hiển thị thành ${sortOrder}.` : '❌ Không tìm thấy mục cần sửa.');
+        }
+        if (state.action === 'hot_name') {
+            const name = text.slice(0, 100);
+            if (!name) return ctx.reply('❌ Tên không được để trống.');
+            ctx.session.navigation = { action: 'hot_icon', name };
+            return ctx.reply('🔥 Bước 2/2: Gửi ID custom emoji bằng số, hoặc dấu - để bỏ icon.');
+        }
+        if (state.action === 'hot_icon') {
+            const customEmojiId = text === '-' ? null : normalizeCustomEmojiId(text);
+            if (text !== '-' && !customEmojiId) return ctx.reply('❌ ID custom emoji phải là số.');
+            catalogService.updateSection('hot', state.name, customEmojiId);
+            delete ctx.session.navigation;
+            return ctx.replyWithHTML(`✅ Đã sửa mục hot thành <b>${escapeHtml(state.name)}</b>.`, hotAdminKeyboard());
+        }
+        if (state.action === 'combo_name') {
+            const name = text.slice(0, 200);
+            if (!name) return ctx.reply('❌ Tên combo không được để trống.');
+            ctx.session.navigation = { ...state, action: 'combo_price', name };
+            return ctx.reply('🎁 Bước 2/3: Gửi giá combo bằng số.');
+        }
+        if (state.action === 'combo_price') {
+            const price = Number(text.replaceAll('.', '').replaceAll(',', ''));
+            if (!Number.isSafeInteger(price) || price <= 0) return ctx.reply('❌ Giá không hợp lệ.');
+            ctx.session.navigation = { ...state, action: 'combo_icon', price };
+            return ctx.reply('🎁 Bước 3/3: Gửi ID custom emoji bằng số, hoặc dấu - nếu không dùng icon.');
+        }
+        if (state.action === 'combo_icon') {
+            const customEmojiId = text === '-' ? null : normalizeCustomEmojiId(text);
+            if (text !== '-' && !customEmojiId) return ctx.reply('❌ ID custom emoji phải là số.');
+            const comboId = state.mode === 'edit'
+                ? state.comboId
+                : catalogService.createCombo(state.name, state.price, customEmojiId);
+            if (state.mode === 'edit') {
+                catalogService.updateCombo(comboId, { name: state.name, price: state.price, customEmojiId });
+            }
+            delete ctx.session.navigation;
+            return ctx.replyWithHTML(
+                `✅ Đã ${state.mode === 'edit' ? 'sửa' : 'tạo'} combo <b>#${comboId} ${escapeHtml(state.name)}</b>. ` +
+                `Bây giờ hãy thêm sản phẩm thành phần.`,
+                comboManageKeyboard(comboId)
+            );
         }
         if (state.action === 'product_name') {
             ctx.session.navigation = { ...state, action: 'product_price', name: text };

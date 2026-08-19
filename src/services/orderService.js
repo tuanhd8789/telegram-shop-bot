@@ -1,6 +1,6 @@
 const db = require('../database');
-const productService = require('./productService');
 const { queueManualDelivery } = require('./manualDeliveryService');
+const { allocateOrderStock, reserveAllocatedStock } = require('./fulfillmentService');
 
 const orderService = {
   /**
@@ -15,14 +15,26 @@ const orderService = {
     return this.getById(result.lastInsertRowid);
   },
 
+  createCombo(userId, combo, quantity, totalPrice, paymentCode) {
+    const anchor = db.prepare('SELECT product_id FROM combo_products WHERE combo_id = ? ORDER BY sort_order, product_id LIMIT 1')
+      .get(combo.id);
+    if (!anchor) throw new Error('Combo chưa có sản phẩm');
+    const result = db.prepare(`
+      INSERT INTO orders (user_id, product_id, combo_id, quantity, total_price, payment_code, status)
+      VALUES (?, ?, ?, ?, ?, ?, 'pending')
+    `).run(userId, anchor.product_id, combo.id, quantity, totalPrice, paymentCode);
+    return this.getById(result.lastInsertRowid);
+  },
+
   /**
    * Get order by ID
    */
   getById(id) {
     return db.prepare(`
-      SELECT o.*, p.name as product_name
+      SELECT o.*, COALESCE(c.name, p.name) as product_name
       FROM orders o
       JOIN products p ON o.product_id = p.id
+      LEFT JOIN combos c ON c.id = o.combo_id
       WHERE o.id = ?
     `).get(id);
   },
@@ -32,9 +44,10 @@ const orderService = {
    */
   getByPaymentCode(code) {
     return db.prepare(`
-      SELECT o.*, p.name as product_name
+      SELECT o.*, COALESCE(c.name, p.name) as product_name
       FROM orders o
       JOIN products p ON o.product_id = p.id
+      LEFT JOIN combos c ON c.id = o.combo_id
       WHERE o.payment_code = ?
     `).get(code);
   },
@@ -44,9 +57,10 @@ const orderService = {
    */
   getPendingByUser(userId) {
     return db.prepare(`
-      SELECT o.*, p.name as product_name
+      SELECT o.*, COALESCE(c.name, p.name) as product_name
       FROM orders o
       JOIN products p ON o.product_id = p.id
+      LEFT JOIN combos c ON c.id = o.combo_id
       WHERE o.user_id = ? AND o.status = 'pending'
       ORDER BY o.created_at DESC
     `).all(userId);
@@ -57,9 +71,10 @@ const orderService = {
    */
   getRecentByUser(userId, limit = 5) {
     return db.prepare(`
-      SELECT o.*, p.name as product_name
+      SELECT o.*, COALESCE(c.name, p.name) as product_name
       FROM orders o
       JOIN products p ON o.product_id = p.id
+      LEFT JOIN combos c ON c.id = o.combo_id
       WHERE o.user_id = ?
       ORDER BY o.created_at DESC
       LIMIT ?
@@ -71,31 +86,27 @@ const orderService = {
    * Returns { success, accounts, error }
    */
   confirmAndDeliver(orderId) {
-    const order = this.getById(orderId);
-    if (!order) return { success: false, error: 'Đơn hàng không tồn tại' };
-    if (order.status !== 'pending') return { success: false, error: 'Đơn hàng đã được xử lý' };
-
-    // Get available stock
-    const stock = productService.getAvailableStock(order.product_id, order.quantity);
-    if (stock.length < order.quantity) {
-      return { success: false, error: `Không đủ hàng. Chỉ còn ${stock.length} sản phẩm.` };
-    }
-
-    // Mark stock as sold
-    const stockIds = stock.map((s) => s.id);
-    productService.markSold(stockIds, order.user_id);
-
-    // Update order status
-    db.prepare(`
-      UPDATE orders SET status = 'delivered', paid_at = CURRENT_TIMESTAMP, delivered_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(orderId);
-
-    // Get account data
-    const accounts = stock.map((s) => s.data);
-    const deliveryItems = stock.map((s) => ({ data: s.data, buyerMessage: s.buyer_message || null }));
-
-    return { success: true, accounts, deliveryItems, order };
+    const deliver = db.transaction(() => {
+      const order = this.getById(orderId);
+      if (!order) return { success: false, error: 'Đơn hàng không tồn tại' };
+      if (!['pending', 'paid'].includes(order.status)) return { success: false, error: 'Đơn hàng đã được xử lý' };
+      const allocation = allocateOrderStock(db, order);
+      if (!allocation.success) {
+        return { success: false, error: `Không đủ hàng. Tối đa còn ${allocation.available} lượt mua.` };
+      }
+      reserveAllocatedStock(db, order, allocation.items);
+      db.prepare(`
+        UPDATE orders SET status = 'delivered', paid_at = COALESCE(paid_at, CURRENT_TIMESTAMP), delivered_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND status IN ('pending', 'paid')
+      `).run(orderId);
+      const deliveryItems = allocation.items.map((item) => ({
+        ...(order.combo_id ? { productName: item.productName } : {}),
+        data: item.data,
+        buyerMessage: item.buyer_message || null,
+      }));
+      return { success: true, accounts: deliveryItems.map((item) => item.data), deliveryItems, order };
+    });
+    return deliver.immediate();
   },
 
   /**
@@ -141,9 +152,10 @@ const orderService = {
    */
   getAllPending() {
     return db.prepare(`
-      SELECT o.*, p.name as product_name, u.full_name as user_name
+      SELECT o.*, COALESCE(c.name, p.name) as product_name, u.full_name as user_name
       FROM orders o
       JOIN products p ON o.product_id = p.id
+      LEFT JOIN combos c ON c.id = o.combo_id
       JOIN users u ON o.user_id = u.telegram_id
       WHERE o.status = 'pending'
       ORDER BY o.created_at ASC
