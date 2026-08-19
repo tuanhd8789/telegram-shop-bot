@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const config = require('../src/config');
 const db = require('../src/database');
 const productService = require('../src/services/productService');
+const catalogService = require('../src/services/catalogService');
 const settingsService = require('../src/services/settingsService');
 const messages = require('../src/utils/messages');
 const {
@@ -46,6 +47,11 @@ test('customer categories use a two-column grid with one navigation row', () => 
     ]);
     assert.deepEqual(rows.at(-1).map((button) => button.text), ['🔄 Làm mới', '↩️ Quay lại']);
     assert.deepEqual(rows.at(-1).map((button) => button.callback_data), ['nav_categories', 'nav_menu']);
+});
+
+test('combo section uses the customer-facing Combo giá tốt label', () => {
+    assert.equal(catalogService.getSection('combos').name, 'Combo giá tốt');
+    assert.ok(labels(adminCategoryMenuKeyboard()).includes('🎁 Combo giá tốt'));
 });
 
 test('category availability follows active local and sheet stock', () => {

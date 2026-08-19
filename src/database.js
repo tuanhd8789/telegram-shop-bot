@@ -235,8 +235,13 @@ db.prepare(`
 `).run();
 db.prepare(`
   INSERT INTO catalog_sections (section_key, name, emoji)
-  VALUES ('combos', 'Combo sản phẩm', '🎁')
+  VALUES ('combos', 'Combo giá tốt', '🎁')
   ON CONFLICT(section_key) DO NOTHING
+`).run();
+db.prepare(`
+  UPDATE catalog_sections
+  SET name = 'Combo giá tốt'
+  WHERE section_key = 'combos' AND name = 'Combo sản phẩm'
 `).run();
 
 // Seed data - only if categories table is empty

@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [1.16.2] - 2026-08-19
+
+### Changed
+
+- Rename the customer and administrator catalog section from **Combo sản phẩm** to **Combo giá tốt**, including safe migration of the legacy default name while preserving administrator-customized names.
+
 ## [1.16.1] - 2026-08-19
 
 ### Changed

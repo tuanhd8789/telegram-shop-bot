@@ -2,6 +2,8 @@
 
 ## Delivered
 
+- 2026-08-19 — Customer-facing combo section renamed to **Combo giá tốt** with a legacy-default migration. Adjusted in [v1.16.2](CHANGELOG.md#1162---2026-08-19).
+
 - 2026-08-19 — Neutral in-stock category buttons without the green status dot. Adjusted in [v1.16.1](CHANGELOG.md#1161---2026-08-19).
 
 - 2026-08-19 — Two-level categories, administrator display ordering, configurable hot products, and atomically fulfilled product combos. Implemented in [v1.16.0](CHANGELOG.md#1160---2026-08-19).
