@@ -528,3 +528,76 @@ test('admin can save a public product photo with caption outside AI chat', async
         config.ADMIN_ID = originalAdminId;
     }
 });
+
+test('guided product creation validates the custom emoji before inserting the product', async () => {
+    const registrations = [];
+    let textHandler;
+    const bot = {
+        action(trigger, handler) { registrations.push({ trigger, handler }); },
+        on(type, handler) { if (type === 'text') textHandler = handler; },
+        telegram: { sendMessage: async () => {} },
+    };
+    registerNavigation(bot);
+
+    function findAction(callback) {
+        for (const registration of registrations) {
+            const match = registration.trigger instanceof RegExp
+                ? callback.match(registration.trigger)
+                : registration.trigger === callback ? [callback] : null;
+            if (match) return { ...registration, match };
+        }
+        assert.fail(`Missing action ${callback}`);
+    }
+
+    const originalAdminId = config.ADMIN_ID;
+    config.ADMIN_ID = 5487392216;
+    db.exec('BEGIN');
+    try {
+        const categoryId = Number(db.prepare('INSERT INTO categories (name) VALUES (?)').run('Create product test').lastInsertRowid);
+        const session = {};
+        const replies = [];
+        const action = findAction(`nav_product_category_${categoryId}`);
+        await action.handler({
+            from: { id: config.ADMIN_ID }, session, match: action.match,
+            answerCbQuery() {}, reply: (...args) => { replies.push(args); },
+        });
+        assert.deepEqual(session.navigation, { action: 'product_name', categoryId });
+        assert.match(replies.at(-1)[0], /Bước 1\/3/);
+
+        const sendText = (text) => textHandler({
+            from: { id: config.ADMIN_ID }, session,
+            message: { text },
+            reply: (...args) => { replies.push(args); },
+            replyWithHTML: (...args) => { replies.push(args); },
+        }, () => assert.fail(`${text} reached next middleware`));
+
+        await sendText('New <Product>');
+        assert.equal(session.navigation.action, 'product_price');
+        assert.match(replies.at(-1)[0], /Bước 2\/3/);
+
+        await sendText('300000');
+        assert.deepEqual(session.navigation, {
+            action: 'product_custom_emoji',
+            categoryId,
+            name: 'New <Product>',
+            price: 300000,
+        });
+        assert.equal(db.prepare('SELECT COUNT(*) FROM products WHERE name = ?').pluck().get('New <Product>'), 0);
+        assert.match(replies.at(-1)[0], /Bước 3\/3/);
+
+        await sendText('https://example.com/icon.svg');
+        assert.equal(session.navigation.action, 'product_custom_emoji');
+        assert.equal(db.prepare('SELECT COUNT(*) FROM products WHERE name = ?').pluck().get('New <Product>'), 0);
+        assert.match(replies.at(-1)[0], /không nhận URL PNG\/SVG/);
+
+        await sendText('5916038376150011838');
+        const product = db.prepare('SELECT * FROM products WHERE name = ?').get('New <Product>');
+        assert.equal(product.price, 300000);
+        assert.equal(product.custom_emoji_id, '5916038376150011838');
+        assert.equal(session.navigation, undefined);
+        assert.match(replies.at(-1)[0], /New &lt;Product&gt;/);
+    } finally {
+        db.exec('ROLLBACK');
+        config.ADMIN_ID = originalAdminId;
+    }
+});

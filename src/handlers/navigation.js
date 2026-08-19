@@ -639,7 +639,7 @@ function registerNavigation(bot, { aiController } = {}) {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
         ctx.answerCbQuery();
         ctx.session.navigation = { action: 'product_name', categoryId: Number(ctx.match[1]) };
-        return ctx.reply('✍️ Gửi tên sản phẩm. Có thể ghi các phiên bản chung trong tên, ví dụ: AutoCAD LT 2D 1 năm (2024, 2025, 2026, 2027).');
+        return ctx.reply('✍️ Bước 1/3: Gửi tên sản phẩm. Có thể ghi các phiên bản chung trong tên, ví dụ: AutoCAD LT 2D 1 năm (2024, 2025, 2026, 2027).');
     });
     bot.action('nav_admin_add_stock', (ctx) => {
         if (!isAdmin(ctx)) return ctx.answerCbQuery('⛔');
@@ -949,14 +949,33 @@ function registerNavigation(bot, { aiController } = {}) {
         }
         if (state.action === 'product_name') {
             ctx.session.navigation = { ...state, action: 'product_price', name: text };
-            return ctx.reply('💵 Gửi giá bán bằng số, ví dụ: 300000.');
+            return ctx.reply('💵 Bước 2/3: Gửi giá bán bằng số, ví dụ: 300000.');
         }
         if (state.action === 'product_price') {
             const price = Number(text.replaceAll('.', '').replaceAll(',', ''));
             if (!Number.isSafeInteger(price) || price <= 0) return ctx.reply('❌ Giá không hợp lệ, hãy gửi lại bằng số.');
-            const id = productService.addProduct(state.categoryId, state.name.slice(0, 200), price);
+            ctx.session.navigation = { ...state, action: 'product_custom_emoji', price };
+            return ctx.reply('🖼 Bước 3/3: Gửi ID custom emoji bằng số. Gửi dấu - nếu không dùng icon. URL PNG/SVG không thể dùng làm icon nút Telegram.');
+        }
+        if (state.action === 'product_custom_emoji') {
+            const customEmojiId = text === '-' ? null : normalizeCustomEmojiId(text);
+            if (text !== '-' && !customEmojiId) {
+                return ctx.reply('❌ Icon nút chỉ nhận ID custom emoji bằng số, không nhận URL PNG/SVG. Gửi lại hoặc gửi dấu - nếu không dùng icon.');
+            }
+            const id = productService.addProduct(
+                state.categoryId,
+                state.name.slice(0, 200),
+                state.price,
+                '📦',
+                null,
+                false,
+                customEmojiId
+            );
             delete ctx.session.navigation;
-            return ctx.replyWithHTML(`✅ Đã tạo sản phẩm <b>#${id}</b>: ${state.name} — ${formatPrice(price)}`);
+            return ctx.replyWithHTML(
+                `✅ Đã tạo sản phẩm <b>#${id}</b>: ${escapeHtml(state.name.slice(0, 200))} — ${formatPrice(state.price)}. ` +
+                `Icon: ${customEmojiId ? `<code>${customEmojiId}</code>` : 'không dùng'}.`
+            );
         }
         if (state.action === 'edit_product_price') {
             const price = Number(text.replaceAll('.', '').replaceAll(',', ''));

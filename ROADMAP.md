@@ -30,6 +30,7 @@
 - 2026-08-19 — Escape-safe persistent AI chat with command bypass and a role-aware keyboard that remains user-toggleable. Fixed in [v1.14.8](CHANGELOG.md#1148---2026-08-19).
 - 2026-08-19 — Single-row refresh/back navigation under the two-column customer category grid. Adjusted in [v1.14.9](CHANGELOG.md#1149---2026-08-19).
 - 2026-08-19 — Public product descriptions with Telegram images, per-stock private buyer messages, and context-aware product-list navigation. Implemented in [v1.15.0](CHANGELOG.md#1150---2026-08-19).
+- 2026-08-19 — Three-step guided product creation with validated custom emoji IDs. Adjusted in [v1.15.1](CHANGELOG.md#1151---2026-08-19).
 
 ## Next
 

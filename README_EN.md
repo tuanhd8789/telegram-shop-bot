@@ -189,7 +189,7 @@ Both the all-products screen and each category's product screen end with a conte
 
 Each stock record may also carry a private buyer message such as a download URL or installation guide. Use `stock data || private message` during bulk entry, or open a stock detail and select **Edit message**. The message is delivered only with that exact key/account. See the [product content and stock-message guide](docs/product-content-and-stock-messages.md).
 
-Product buttons use **Price | Stock | App name**, read their individual icon from `products.custom_emoji_id`, and are green when stocked or red when out of stock. **Administration → Product management → Edit name & icon** uses the same two-step flow. Per the [Telegram Bot API](https://core.telegram.org/bots/api#inlinekeyboardbutton), an inline-button icon accepts only `icon_custom_emoji_id`; a PNG/SVG URL cannot replace it. See the [custom emoji guide](docs/product-custom-emojis.md) for configuration and the current Autodesk mappings.
+Product buttons use **Price | Stock | App name** and read their individual icon from `products.custom_emoji_id`. Guided product creation asks for name, price, then a custom emoji ID; **Administration → Product management → Edit name & icon** uses a two-step edit flow. Per the [Telegram Bot API](https://core.telegram.org/bots/api#inlinekeyboardbutton), an inline-button icon accepts only `icon_custom_emoji_id`; a PNG/SVG URL cannot replace it. See the [custom emoji guide](docs/product-custom-emojis.md) for configuration and the current Autodesk mappings.
 
 ## 👛 Wallet top-ups
 
