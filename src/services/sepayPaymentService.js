@@ -1,3 +1,5 @@
+const { allocateOrderStock, reserveAllocatedStock } = require('./fulfillmentService');
+
 function normalizePaymentCode(value) {
     const compact = String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     const match = compact.match(/PAY[A-Z0-9]{6}/);
@@ -15,13 +17,21 @@ function payloadError(message) {
 }
 
 function createSePayPaymentService({ db, bankAccounts, adminId }) {
+    const hasComboSchema = Boolean(db.prepare(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'combos'"
+    ).get());
+    const orderNameSelect = hasComboSchema
+        ? 'o.*, COALESCE(c.name, p.name) AS product_name'
+        : 'o.*, p.name AS product_name';
+    const comboJoin = hasComboSchema ? 'LEFT JOIN combos c ON c.id = o.combo_id' : '';
     const allowedAccounts = new Set(bankAccounts.map(normalizeAccount).filter(Boolean));
     const getTransaction = db.prepare(
         'SELECT transaction_id FROM payment_transactions WHERE transaction_id = ?'
     );
     const getExactOrder = db.prepare(`
-        SELECT o.*, p.name AS product_name
+        SELECT ${orderNameSelect}
         FROM orders o JOIN products p ON p.id = o.product_id
+        ${comboJoin}
         WHERE o.payment_code = ?
     `);
     const getTopup = db.prepare(`
@@ -30,8 +40,9 @@ function createSePayPaymentService({ db, bankAccounts, adminId }) {
         WHERE t.payment_code = ?
     `);
     const getLegacyOrders = db.prepare(`
-        SELECT o.*, p.name AS product_name
+        SELECT ${orderNameSelect}
         FROM orders o JOIN products p ON p.id = o.product_id
+        ${comboJoin}
         WHERE o.payment_code LIKE '%PAY%'
         ORDER BY o.id DESC LIMIT 500
     `);
@@ -169,11 +180,7 @@ function createSePayPaymentService({ db, bankAccounts, adminId }) {
             return { status: 'amount_mismatch', orderId: order.id };
         }
 
-        const stock = db.prepare(`
-            SELECT id, data, buyer_message FROM stock
-            WHERE product_id = ? AND is_sold = 0
-            ORDER BY id ASC LIMIT ?
-        `).all(order.product_id, order.quantity);
+        const allocation = allocateOrderStock(db, order);
 
         addTransaction(data, order.id, null, 'accepted');
         const paid = db.prepare(`
@@ -182,24 +189,15 @@ function createSePayPaymentService({ db, bankAccounts, adminId }) {
         `).run(order.id);
         if (paid.changes !== 1) throw new Error('Order state changed while processing payment');
 
-        if (stock.length < order.quantity) {
+        if (!allocation.success) {
             addAdminAlert(data, order, 'Đã nhận đủ tiền nhưng thiếu kho giao tự động', {
                 requiredStock: order.quantity,
-                availableStock: stock.length,
+                availableStock: allocation.available,
                 manualDelivery: true,
             });
             return { status: 'stock_shortage', orderId: order.id };
         }
-
-        const reserveStock = db.prepare(`
-            UPDATE stock
-            SET is_sold = 1, sold_to = ?, sold_at = CURRENT_TIMESTAMP, sold_order_id = ?
-            WHERE id = ? AND is_sold = 0
-        `);
-        for (const item of stock) {
-            const reserved = reserveStock.run(order.user_id, order.id, item.id);
-            if (reserved.changes !== 1) throw new Error('Stock item was reserved concurrently');
-        }
+        reserveAllocatedStock(db, order, allocation.items);
 
         addAdminAlert(data, order, 'Đã nhận tiền, khớp đơn và xếp hàng giao tự động');
         enqueueJob.run(
@@ -211,7 +209,8 @@ function createSePayPaymentService({ db, bankAccounts, adminId }) {
                 orderId: order.id,
                 productName: order.product_name,
                 quantity: order.quantity,
-                items: stock.map((item) => ({
+                items: allocation.items.map((item) => ({
+                    ...(order.combo_id ? { productName: item.productName } : {}),
                     data: item.data,
                     buyerMessage: item.buyer_message || null,
                 })),

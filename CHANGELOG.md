@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented here.
 
+## [1.16.0] - 2026-08-19
+
+### Added
+
+- Add strictly two-level product categories with parent selection in create/edit flows, child-category navigation, and a parent-level **View all products** action.
+- Add administrator-defined display order for categories and products; customer lists apply category order before product order.
+- Add a configurable **Hot products** section with editable name/custom icon and product membership.
+- Add configurable product combos with name, custom icon, price, component membership, customer purchase flow, and component-labelled delivery.
+
+### Changed
+
+- Calculate combo availability from the least-stocked component and atomically reserve one stock item from every component for each purchased combo.
+- Route manual confirmation, AI confirmation, and authenticated SePay fulfillment through the same combo-aware stock allocation rules.
+
+### Security
+
+- Keep combo reservation inside SQLite transactions so concurrent confirmations cannot sell the same component stock twice.
+
 ## [1.15.1] - 2026-08-19
 
 ### Changed

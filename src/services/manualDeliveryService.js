@@ -1,11 +1,18 @@
 function queueManualDelivery(database, orderId, accounts) {
     const queue = database.transaction(() => {
+        const hasComboSchema = Boolean(database.prepare(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'combos'"
+        ).get());
         const order = database.prepare(`
-            SELECT o.*, p.name AS product_name
+            SELECT o.*, ${hasComboSchema ? 'COALESCE(c.name, p.name)' : 'p.name'} AS product_name
             FROM orders o JOIN products p ON p.id = o.product_id
+            ${hasComboSchema ? 'LEFT JOIN combos c ON c.id = o.combo_id' : ''}
             WHERE o.id = ?
         `).get(orderId);
         if (!order) return { success: false, error: 'Đơn hàng không tồn tại' };
+        if (order.combo_id) {
+            return { success: false, error: 'Combo phải được giao từ tồn kho của đầy đủ sản phẩm thành phần' };
+        }
         if (order.status !== 'paid') {
             return { success: false, error: 'Đơn hàng chưa ở trạng thái đã thanh toán' };
         }

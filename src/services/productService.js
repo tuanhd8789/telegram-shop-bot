@@ -14,8 +14,10 @@ const productService = {
           ELSE COALESCE(p.sheet_stock, 0)
         END as display_stock
       FROM products p
+      LEFT JOIN categories c ON c.id = p.category_id
+      LEFT JOIN categories parent ON parent.id = c.parent_id
       WHERE p.is_active = 1
-      ORDER BY p.category_id, p.id
+      ORDER BY COALESCE(parent.sort_order, c.sort_order, 0), c.sort_order, p.sort_order, p.id
     `).all();
     },
 
@@ -50,8 +52,23 @@ const productService = {
         END as display_stock
       FROM products p
       WHERE p.category_id = ? AND p.is_active = 1
-      ORDER BY p.id
+      ORDER BY p.sort_order, p.id
     `).all(categoryId);
+    },
+
+    getByCategoryTree(categoryId) {
+        return db.prepare(`
+          SELECT p.*,
+            (SELECT COUNT(*) FROM stock s WHERE s.product_id = p.id AND s.is_sold = 0) stock_count,
+            CASE
+              WHEN (SELECT COUNT(*) FROM stock s WHERE s.product_id = p.id AND s.is_sold = 0) > 0
+              THEN (SELECT COUNT(*) FROM stock s WHERE s.product_id = p.id AND s.is_sold = 0)
+              ELSE COALESCE(p.sheet_stock, 0)
+            END display_stock
+          FROM products p JOIN categories c ON c.id = p.category_id
+          WHERE (c.id = ? OR c.parent_id = ?) AND p.is_active = 1 AND c.is_active = 1
+          ORDER BY c.sort_order, p.sort_order, p.id
+        `).all(categoryId, categoryId);
     },
 
     /**
@@ -61,9 +78,12 @@ const productService = {
         return db.prepare(`
             SELECT c.*,
               (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) product_count,
+              (SELECT COUNT(*) FROM categories child WHERE child.parent_id = c.id) child_count,
               EXISTS (
                 SELECT 1 FROM products p
-                WHERE p.category_id = c.id
+                JOIN categories pc ON pc.id = p.category_id
+                WHERE (pc.id = c.id OR pc.parent_id = c.id)
+                  AND pc.is_active = 1
                   AND p.is_active = 1
                   AND (
                     COALESCE(p.sheet_stock, 0) > 0
@@ -79,13 +99,22 @@ const productService = {
         `).all(includeInactive ? 1 : 0);
     },
 
+    getRootCategories({ includeInactive = false } = {}) {
+        return this.getCategories({ includeInactive }).filter((category) => category.parent_id == null);
+    },
+
+    getChildCategories(parentId, { includeInactive = false } = {}) {
+        return this.getCategories({ includeInactive }).filter((category) => category.parent_id === parentId);
+    },
+
     /**
      * Get one category for admin workflows, including hidden categories.
      */
     getCategoryById(id) {
         return db.prepare(`
             SELECT c.*,
-              (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) product_count
+              (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) product_count,
+              (SELECT COUNT(*) FROM categories child WHERE child.parent_id = c.id) child_count
             FROM categories c WHERE c.id = ?
         `).get(id);
     },
@@ -183,9 +212,12 @@ const productService = {
      * Add a new product
      */
     addProduct(categoryId, name, price, emoji = '📦', promotion = null, contactOnly = false, customEmojiId = null) {
+        const sortOrder = db.prepare(
+            'SELECT COALESCE(MAX(sort_order), 0) + 1 value FROM products WHERE category_id = ?'
+        ).get(categoryId).value;
         const result = db.prepare(
-            'INSERT INTO products (category_id, name, price, emoji, promotion, contact_only, custom_emoji_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
-        ).run(categoryId, name, price, emoji, promotion, contactOnly ? 1 : 0, customEmojiId);
+            'INSERT INTO products (category_id, name, price, emoji, promotion, contact_only, custom_emoji_id, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        ).run(categoryId, name, price, emoji, promotion, contactOnly ? 1 : 0, customEmojiId, sortOrder);
         return result.lastInsertRowid;
     },
 };

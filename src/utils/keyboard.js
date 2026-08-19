@@ -34,12 +34,16 @@ function productListKeyboard(products, {
  * Build quantity selection keyboard
  */
 function quantityKeyboard(productId, maxQty = 10) {
+    return itemQuantityKeyboard('qty', productId, maxQty);
+}
+
+function itemQuantityKeyboard(prefix, itemId, maxQty = 10) {
     const max = Math.min(maxQty, 10);
     const rows = [];
     let row = [];
 
     for (let i = 1; i <= max; i++) {
-        row.push(Markup.button.callback(`${i}`, `qty_${productId}_${i}`));
+        row.push(Markup.button.callback(`${i}`, `${prefix}_${itemId}_${i}`));
         if (row.length === 5) {
             rows.push(row);
             row = [];
@@ -49,6 +53,23 @@ function quantityKeyboard(productId, maxQty = 10) {
 
     rows.push([Markup.button.callback('❌ Hủy', 'cancel_order')]);
 
+    return Markup.inlineKeyboard(rows);
+}
+
+function comboListKeyboard(combos, { refreshCallback = 'nav_combos', backCallback = 'nav_categories' } = {}) {
+    const rows = combos.map((combo) => {
+        const button = callbackWithCustomEmoji(
+            `${formatCompactPrice(combo.price)} | ${combo.display_stock} | ${combo.name}`,
+            `combo_${combo.id}`,
+            combo.custom_emoji_id
+        );
+        if (combo.display_stock === 0) button.style = 'danger';
+        return [button];
+    });
+    rows.push([
+        Markup.button.callback('🔄 Làm mới', refreshCallback),
+        Markup.button.callback('↩️ Quay lại', backCallback),
+    ]);
     return Markup.inlineKeyboard(rows);
 }
 
@@ -116,6 +137,8 @@ function mainMenuKeyboard() {
 module.exports = {
     productListKeyboard,
     quantityKeyboard,
+    itemQuantityKeyboard,
+    comboListKeyboard,
     orderConfirmKeyboard,
     postDeliveryKeyboard,
     formatPrice,

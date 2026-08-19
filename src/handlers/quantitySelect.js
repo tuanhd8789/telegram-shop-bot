@@ -6,8 +6,43 @@ const messages = require('../utils/messages');
 const config = require('../config');
 const { Markup } = require('telegraf');
 const { formatPrice } = require('../utils/keyboard');
+const catalogService = require('../services/catalogService');
+const db = require('../database');
+const { allocateOrderStock } = require('../services/fulfillmentService');
 
 module.exports = (bot) => {
+    bot.action(/^combo_qty_(\d+)_(\d+)$/, async (ctx) => {
+        const combo = catalogService.getComboById(Number(ctx.match[1]));
+        const quantity = Number(ctx.match[2]);
+        if (!combo || !combo.is_active) return ctx.answerCbQuery('❌ Combo không tồn tại');
+        if (combo.display_stock < quantity) return ctx.answerCbQuery(`❌ Chỉ còn ${combo.display_stock} combo`);
+        const banks = paymentService.getBanks();
+        if (banks.length > 1) {
+            ctx.answerCbQuery();
+            const rows = banks.map((bank, index) => [
+                Markup.button.callback(`🏦 ${bank.NAME}`, `combo_bank_${combo.id}_${quantity}_${index}`),
+            ]);
+            rows.push([Markup.button.callback('❌ Hủy', 'cancel_order')]);
+            return ctx.replyWithHTML(
+                `🎁 <b>${combo.name}</b>\n📊 Số lượng: ${quantity}\n` +
+                `💵 Tổng tiền: <b>${formatPrice(combo.price * quantity)}</b>\n\n🏦 Chọn ngân hàng thanh toán:`,
+                Markup.inlineKeyboard(rows)
+            );
+        }
+        ctx.answerCbQuery('⏳ Đang tạo đơn hàng...');
+        return createOrderAndPay(ctx, bot, combo, quantity, 0, 'combo');
+    });
+
+    bot.action(/^combo_bank_(\d+)_(\d+)_(\d+)$/, async (ctx) => {
+        const combo = catalogService.getComboById(Number(ctx.match[1]));
+        const quantity = Number(ctx.match[2]);
+        const bankIndex = Number(ctx.match[3]);
+        if (!combo || !combo.is_active) return ctx.answerCbQuery('❌ Combo không tồn tại');
+        if (combo.display_stock < quantity) return ctx.answerCbQuery(`❌ Chỉ còn ${combo.display_stock} combo`);
+        ctx.answerCbQuery('⏳ Đang tạo đơn hàng...');
+        return createOrderAndPay(ctx, bot, combo, quantity, bankIndex, 'combo');
+    });
+
     // Handle quantity selection: qty_{productId}_{quantity}
     bot.action(/^qty_(\d+)_(\d+)$/, async (ctx) => {
         const productId = parseInt(ctx.match[1]);
@@ -72,19 +107,15 @@ module.exports = (bot) => {
     // ════════════════════════════════════
     // Shared: Create order + send QR + notify admin
     // ════════════════════════════════════
-    async function createOrderAndPay(ctx, bot, product, quantity, bankIndex) {
+    async function createOrderAndPay(ctx, bot, product, quantity, bankIndex, kind = 'product') {
         userService.findOrCreate(ctx.from);
 
         const totalPrice = product.price * quantity;
         const payment = paymentService.generatePayment(totalPrice, bankIndex);
 
-        const order = orderService.create(
-            ctx.from.id,
-            product.id,
-            quantity,
-            totalPrice,
-            payment.paymentCode
-        );
+        const order = kind === 'combo'
+            ? orderService.createCombo(ctx.from.id, product, quantity, totalPrice, payment.paymentCode)
+            : orderService.create(ctx.from.id, product.id, quantity, totalPrice, payment.paymentCode);
 
         // 1. Send QR code to customer
         const caption =
@@ -153,10 +184,10 @@ module.exports = (bot) => {
         if (order.status !== 'pending') return ctx.answerCbQuery('⚠️ Đơn đã xử lý');
 
         // Check if product has real stock entries in stock table
-        const product = productService.getById(order.product_id);
-        const realStock = productService.getAvailableStock(order.product_id, order.quantity);
+        const product = order.combo_id ? catalogService.getComboById(order.combo_id) : productService.getById(order.product_id);
+        const allocation = allocateOrderStock(db, order);
 
-        if (realStock.length >= order.quantity) {
+        if (allocation.success) {
             // ── AUTO DELIVERY: Has stock entries → deliver automatically ──
             ctx.answerCbQuery('⏳ Đang xử lý...');
             const { deliverOrder } = require('./paymentConfirm');
@@ -171,6 +202,12 @@ module.exports = (bot) => {
                 ctx.reply(`❌ Lỗi đơn #${orderId}: ${result.error}`);
             }
         } else {
+            if (order.combo_id) {
+                return ctx.answerCbQuery(
+                    `❌ Combo không còn đủ thành phần (tối đa ${allocation.available}). Chưa xác nhận đơn.`,
+                    { show_alert: true }
+                );
+            }
             // ── MANUAL DELIVERY: No stock entries → ask admin to provide account info ──
             ctx.answerCbQuery('📝 Cần cung cấp tài khoản...');
             orderService.markPaid(orderId);

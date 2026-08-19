@@ -44,6 +44,8 @@
 | 🔄 **Giao hàng thủ công** | Admin cung cấp tài khoản trực tiếp cho sản phẩm hết kho |
 | 🧭 **Menu nút ngữ cảnh** | Khách mua hàng/nạp ví bằng nút; admin có bảng thao tác riêng theo quyền |
 | 👛 **Ví tự động** | Chọn nhanh số tiền nạp hoặc nhập tùy ý; SePay cộng ví đúng một lần |
+| 🗂 **Danh mục 2 cấp** | Duyệt danh mục cha/con, xem gộp sản phẩm và tự sắp xếp thứ tự hiển thị |
+| 🔥 **Hot & combo** | Quản trị sản phẩm nổi bật và combo trừ tồn kho thành phần nguyên tử |
 
 ## 🔄 Flow mua hàng
 

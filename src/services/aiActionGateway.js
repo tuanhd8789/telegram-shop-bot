@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { allocateOrderStock, reserveAllocatedStock } = require('./fulfillmentService');
 
 const ACTION_TTL_MS = 10 * 60 * 1000;
 const MAX_LIST_ITEMS = 25;
@@ -117,6 +118,13 @@ function tool(name, description, parameters) {
 }
 
 function createToolRegistry({ db, config, telegram, syncFromSheet }) {
+    const hasComboSchema = Boolean(db.prepare(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'combos'"
+    ).get());
+    const orderComboFields = hasComboSchema
+        ? 'o.combo_id, COALESCE(c.name, p.name) product_name'
+        : 'NULL combo_id, p.name product_name';
+    const comboJoin = hasComboSchema ? 'LEFT JOIN combos c ON c.id = o.combo_id' : '';
     const positiveId = { type: 'integer', minimum: 1 };
     const shortText = { type: 'string', minLength: 1, maxLength: 200 };
     const tools = [
@@ -266,9 +274,10 @@ function createToolRegistry({ db, config, telegram, syncFromSheet }) {
             if (status && !allowedStatuses.includes(status)) throw new ActionError('Trạng thái đơn không hợp lệ.');
             const limit = optionalInteger(value.limit, 'limit', { min: 1, max: 25 }) || 20;
             return db.prepare(`
-                SELECT o.id, o.product_id, p.name product_name, o.quantity, o.total_price,
+                SELECT o.id, o.product_id, ${orderComboFields}, o.quantity, o.total_price,
                   o.status, o.created_at, o.paid_at, o.delivered_at
                 FROM orders o JOIN products p ON p.id = o.product_id
+                ${comboJoin}
                 WHERE (? IS NULL OR o.status = ?) ORDER BY o.created_at DESC LIMIT ?
             `).all(status ?? null, status ?? null, limit);
         },
@@ -276,9 +285,10 @@ function createToolRegistry({ db, config, telegram, syncFromSheet }) {
             const value = onlyKeys(args, ['order_id']);
             const id = requiredInteger(value.order_id, 'order_id');
             return assertExists(db.prepare(`
-                SELECT o.id, o.product_id, p.name product_name, o.quantity, o.total_price,
+                SELECT o.id, o.product_id, ${orderComboFields}, o.quantity, o.total_price,
                   o.status, o.created_at, o.paid_at, o.delivered_at
-                FROM orders o JOIN products p ON p.id = o.product_id WHERE o.id = ?
+                FROM orders o JOIN products p ON p.id = o.product_id
+                ${comboJoin} WHERE o.id = ?
             `).get(id), 'Đơn hàng không tồn tại.');
         },
         get_ai_action_history(args) {
@@ -516,11 +526,12 @@ function createToolRegistry({ db, config, telegram, syncFromSheet }) {
                 const value = onlyKeys(args, ['order_id']);
                 const orderId = requiredInteger(value.order_id, 'order_id');
                 const order = assertExists(db.prepare(`
-                    SELECT o.id, o.status, o.product_id, o.quantity, o.user_id, p.name product_name
-                    FROM orders o JOIN products p ON p.id = o.product_id WHERE o.id = ?
+                    SELECT o.id, o.status, o.product_id, ${orderComboFields}, o.quantity, o.user_id
+                    FROM orders o JOIN products p ON p.id = o.product_id
+                    ${comboJoin} WHERE o.id = ?
                 `).get(orderId), 'Đơn hàng không tồn tại.');
                 if (!['pending', 'paid'].includes(order.status)) throw new ActionError(`Đơn đang ở trạng thái ${order.status}.`);
-                return { order_id: orderId, status: order.status, product_id: order.product_id, quantity: order.quantity,
+                return { order_id: orderId, status: order.status, product_id: order.product_id, combo_id: order.combo_id, quantity: order.quantity,
                     user_id: order.user_id, product_name: order.product_name };
             },
             preview: (args) => `Xác nhận đơn #${args.order_id}: ${args.product_name} × ${args.quantity}. Nếu thiếu kho, bot chuyển sang bước giao hàng bảo mật.`,
@@ -528,25 +539,17 @@ function createToolRegistry({ db, config, telegram, syncFromSheet }) {
                 const existingJob = db.prepare('SELECT status FROM telegram_jobs WHERE dedupe_key = ?')
                     .get(`order:${args.order_id}:delivery`);
                 if (existingJob) throw new ActionError(`Đơn đã có job giao hàng trạng thái ${existingJob.status}.`);
-                const stock = db.prepare(`
-                    SELECT id, data, buyer_message FROM stock
-                    WHERE product_id = ? AND is_sold = 0 ORDER BY id LIMIT ?
-                `).all(args.product_id, args.quantity);
-                if (args.status === 'pending' && stock.length >= args.quantity) {
-                    const paid = db.prepare(`
-                        UPDATE orders SET status = 'paid', paid_at = CURRENT_TIMESTAMP
-                        WHERE id = ? AND status = 'pending'
-                    `).run(args.order_id);
-                    if (paid.changes !== 1) throw new ActionError('Đơn đã thay đổi trạng thái.');
-                    const reserve = db.prepare(`
-                        UPDATE stock SET is_sold = 1, sold_to = ?, sold_at = CURRENT_TIMESTAMP, sold_order_id = ?
-                        WHERE id = ? AND is_sold = 0
-                    `);
-                    for (const item of stock) {
-                        if (reserve.run(args.user_id, args.order_id, item.id).changes !== 1) {
-                            throw new ActionError('Stock đã được giữ bởi giao dịch khác.');
-                        }
+                const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(args.order_id);
+                const allocation = allocateOrderStock(db, { ...order, product_name: args.product_name });
+                if (allocation.success) {
+                    if (args.status === 'pending') {
+                        const paid = db.prepare(`
+                            UPDATE orders SET status = 'paid', paid_at = CURRENT_TIMESTAMP
+                            WHERE id = ? AND status = 'pending'
+                        `).run(args.order_id);
+                        if (paid.changes !== 1) throw new ActionError('Đơn đã thay đổi trạng thái.');
                     }
+                    reserveAllocatedStock(db, order, allocation.items);
                     db.prepare(`
                         INSERT INTO telegram_jobs (dedupe_key, kind, order_id, chat_id, payload)
                         VALUES (?, 'customer_delivery', ?, ?, ?)
@@ -558,13 +561,17 @@ function createToolRegistry({ db, config, telegram, syncFromSheet }) {
                             orderId: args.order_id,
                             productName: args.product_name,
                             quantity: args.quantity,
-                            items: stock.map((item) => ({
+                            items: allocation.items.map((item) => ({
+                                productName: item.productName,
                                 data: item.data,
                                 buyerMessage: item.buyer_message || null,
                             })),
                         })
                     );
                     return { message: `Đã xác nhận và xếp hàng giao đơn #${args.order_id}; worker sẽ tự retry nếu Telegram tạm lỗi.` };
+                }
+                if (args.combo_id) {
+                    throw new ActionError(`Combo không còn đủ thành phần; tối đa ${allocation.available} lượt mua. Không thể giao thủ công combo.`);
                 }
                 if (args.status === 'pending') {
                     const paid = db.prepare("UPDATE orders SET status = 'paid', paid_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'pending'").run(args.order_id);

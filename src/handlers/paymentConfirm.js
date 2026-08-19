@@ -53,7 +53,7 @@ async function deliverOrder(bot, orderId) {
     }
 
     const order = result.order;
-    const product = productService.getById(order.product_id);
+    const product = { name: order.product_name };
 
     try {
         // Send success notification
