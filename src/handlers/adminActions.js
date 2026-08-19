@@ -25,7 +25,7 @@ function adminOnly(ctx, next) {
     return next();
 }
 
-module.exports = (bot) => {
+module.exports = (bot, { restockNotifier } = {}) => {
 
     function beginManualDelivery(ctx, order, product) {
         adminState[ctx.from.id] = {
@@ -542,13 +542,19 @@ module.exports = (bot) => {
             const lines = ctx.message.text.split('\n').filter((l) => l.trim());
             if (lines.length === 0) return ctx.reply('❌ Không có dữ liệu.');
 
-            productService.addStock(state.productId, lines);
+            const stockChange = productService.addStock(state.productId, lines);
+            const notification = await restockNotifier?.notifyIfRestocked(
+                state.productId, stockChange.beforeStock
+            );
             const product = productService.getById(state.productId);
 
             ctx.replyWithHTML(
-                `✅ <b>Đã thêm ${lines.length} nội dung sản phẩm!</b>\n\n` +
+                `✅ <b>Đã thêm ${stockChange.added} nội dung sản phẩm!</b>\n\n` +
                 `├ Sản phẩm: ${product.name}\n` +
-                `└ 📦 Tồn kho: <b>${product.stock_count}</b>`
+                `└ 📦 Tồn kho: <b>${product.stock_count}</b>` +
+                (notification?.triggered
+                    ? `\n📣 Đã thông báo hàng về cho ${notification.sent}/${notification.total} người đăng ký.`
+                    : '')
             );
             return;
         }

@@ -187,6 +187,7 @@ Gửi `/start` hoặc `/menu` một lần để cài bàn phím theo vai trò. M
 - Menu danh mục khách hàng hiển thị theo lưới tối đa 2 cột, giữ icon riêng của từng danh mục; **Làm mới** và **Quay lại** nằm cùng một hàng điều hướng ở cuối. Nút xanh khi có ít nhất một sản phẩm đang bật còn stock cục bộ hoặc stock Sheet; nút đỏ khi toàn bộ sản phẩm đang bật hết hàng.
 - Danh sách tất cả sản phẩm và danh sách trong từng danh mục đều có hàng **Làm mới | Quay lại** theo đúng ngữ cảnh. Admin có thể thêm mô tả công khai và ảnh Telegram tại **Quản lý sản phẩm → Sửa mô tả & ảnh**.
 - Mỗi stock có thể có lời nhắn riêng cho người mua (link tải, hướng dẫn cài đặt). Khi thêm hàng loạt, dùng `dữ liệu stock || lời nhắn riêng`; hoặc mở chi tiết stock và bấm **Sửa lời nhắn**. Xem [hướng dẫn nội dung sản phẩm và lời nhắn stock](docs/product-content-and-stock-messages.md).
+- Khi một sản phẩm đang hiển thị chuyển từ hết hàng sang có tồn kho, bot tự thông báo cho mọi người dùng đã `/start`, kèm icon, tên, số tồn và hai nút **Xem sản phẩm | Mua ngay**. Xem [hướng dẫn thông báo hàng về](docs/restock-notifications.md).
 - Nút sản phẩm hiển thị theo thứ tự **Giá | Tồn kho | Tên app** và dùng `products.custom_emoji_id` làm icon riêng. **Tạo sản phẩm** hỏi lần lượt tên, giá và ID custom emoji; **Sửa tên & icon** dùng luồng hai bước. Theo [Telegram Bot API](https://core.telegram.org/bots/api#inlinekeyboardbutton), icon của inline button chỉ nhận `icon_custom_emoji_id`; URL PNG/SVG không thể thay thế trường này. Xem [hướng dẫn custom emoji](docs/product-custom-emojis.md).
 - Các lệnh cũ vẫn được giữ để tương thích và xử lý sự cố.
 
@@ -206,6 +207,8 @@ Cách chính: **Quản trị → Thêm tồn kho → chọn sản phẩm → g�
 email1@example.com|password1|extra_info1
 email2@example.com|password2|extra_info2
 ```
+
+Nếu sản phẩm trước đó có tồn bằng `0`, lần thêm kho thành công này sẽ tự phát thông báo hàng về. Bổ sung thêm khi sản phẩm vẫn còn hàng không gửi lặp.
 
 ## 📊 Google Sheet Sync (tùy chọn)
 

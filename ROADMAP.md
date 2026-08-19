@@ -2,6 +2,8 @@
 
 ## Delivered
 
+- 2026-08-19 — Automatic zero-to-positive restock alerts for all registered users with product and immediate-purchase actions. Implemented in [v1.17.0](CHANGELOG.md#1170---2026-08-19).
+
 - 2026-08-19 — Customer-facing combo section renamed to **Combo giá tốt** with a legacy-default migration. Adjusted in [v1.16.2](CHANGELOG.md#1162---2026-08-19).
 
 - 2026-08-19 — Neutral in-stock category buttons without the green status dot. Adjusted in [v1.16.1](CHANGELOG.md#1161---2026-08-19).

@@ -123,14 +123,22 @@ const productService = {
      * Add stock items for a product
      */
     addStock(productId, dataLines) {
+        const beforeStock = this.getById(productId)?.display_stock || 0;
         const insert = db.prepare('INSERT INTO stock (product_id, data, buyer_message) VALUES (?, ?, ?)');
         const insertMany = db.transaction((lines) => {
+            let added = 0;
             for (const line of lines) {
                 const item = typeof line === 'string' ? parseStockInputLine(line) : line;
-                if (item?.data?.trim()) insert.run(productId, item.data.trim(), item.buyerMessage?.trim() || null);
+                if (item?.data?.trim()) {
+                    insert.run(productId, item.data.trim(), item.buyerMessage?.trim() || null);
+                    added += 1;
+                }
             }
+            return added;
         });
-        insertMany(dataLines);
+        const added = insertMany(dataLines);
+        const afterStock = this.getById(productId)?.display_stock || 0;
+        return { added, beforeStock, afterStock };
     },
 
     /**

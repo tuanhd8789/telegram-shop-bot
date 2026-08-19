@@ -3,6 +3,8 @@ const http = require('http');
 const db = require('../database');
 const config = require('../config');
 
+let restockNotifier = null;
+
 // Sync interval in minutes
 const SYNC_INTERVAL = parseInt(process.env.SHEET_SYNC_INTERVAL) || 5;
 
@@ -101,6 +103,7 @@ function syncToDatabase(rows) {
 
     let updated = 0;
     let added = 0;
+    const restockedProductIds = [];
 
     const getProduct = db.prepare('SELECT * FROM products WHERE id = ?');
     const updateProduct = db.prepare(`
@@ -147,8 +150,13 @@ function syncToDatabase(rows) {
             const existing = getProduct.get(id);
 
             if (existing) {
+                const previousStock = existing.is_active
+                    ? (hasRealStock ? realStock.c : (existing.sheet_stock || 0))
+                    : 0;
                 updateProduct.run(name, price, desc, inStock ? 1 : 0,
                     contactOnly, contactUrl, sheetStock, promotion, id);
+                const currentStock = inStock ? (hasRealStock ? realStock.c : sheetStock) : 0;
+                if (previousStock <= 0 && currentStock > 0) restockedProductIds.push(id);
                 updated++;
             } else {
                 insertProduct.run(id, name, price, desc,
@@ -160,7 +168,7 @@ function syncToDatabase(rows) {
 
     syncAll();
 
-    return { updated, added, total: dataRows.length };
+    return { updated, added, total: dataRows.length, restockedProductIds };
 }
 
 /**
@@ -178,6 +186,13 @@ async function syncFromSheet() {
         const csv = await fetchSheetCSV(sheetId);
         const rows = parseCSV(csv);
         const result = syncToDatabase(rows);
+        const notifications = [];
+        if (restockNotifier) {
+            for (const productId of result.restockedProductIds) {
+                notifications.push(await restockNotifier.notifyIfRestocked(productId, 0));
+            }
+        }
+        result.notifications = notifications;
         console.log(`✅ Sheet sync done: ${result.updated} updated, ${result.added} added (${result.total} total)`);
         return result;
     } catch (err) {
@@ -205,8 +220,14 @@ function startAutoSync() {
     setInterval(() => syncFromSheet(), SYNC_INTERVAL * 60 * 1000);
 }
 
+function configureRestockNotifier(notifier) {
+    restockNotifier = notifier || null;
+}
+
 module.exports = {
+    configureRestockNotifier,
     syncFromSheet,
+    syncToDatabase,
     startAutoSync,
     fetchSheetCSV,
     parseCSV,
